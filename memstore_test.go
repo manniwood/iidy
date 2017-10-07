@@ -26,5 +26,17 @@ func TestGet(t *testing.T) {
 	if ok {
 		t.Error("Non-existent list claims to return value.")
 	}
+}
 
+func TestDel(t *testing.T) {
+	m := NewMemStore()
+	m.Add("Downloads", "kernel.tar.gz")
+	err := m.Del("Downloads", "kernel.tar.gz")
+	if err != nil {
+		t.Error("Error trying to delete item from list: %v", err)
+	}
+	_, ok, _ := m.Get("Downloads", "kernel.tar.gz")
+	if ok {
+		t.Error("Did not properly delete item to list.")
+	}
 }
