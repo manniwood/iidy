@@ -40,3 +40,16 @@ func TestDel(t *testing.T) {
 		t.Error("Did not properly delete item to list.")
 	}
 }
+
+func TestInc(t *testing.T) {
+	m := NewMemStore()
+	m.Add("Downloads", "kernel.tar.gz")
+	m.Inc("Downloads", "kernel.tar.gz")
+	attempts, ok, _ := m.Get("Downloads", "kernel.tar.gz")
+	if !ok {
+		t.Error("Did not properly add item to list.")
+	}
+	if attempts != 1 {
+		t.Error("Did not properly increment item in list.")
+	}
+}
