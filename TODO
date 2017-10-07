@@ -1,0 +1,10 @@
+Next steps:
+- put a RESTFUL interface on top of this
+- figure out how to test a restful interface
+- add bulk add capabilities
+- add bulk get capabilities
+- add bulk inc capabilities
+- add bulk del capabilities
+- do a PostgreSQL impl
+- do a Redis impl
+
