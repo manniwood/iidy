@@ -3,4 +3,28 @@ package iidy
 import "testing"
 
 func TestAdd(t *testing.T) {
+	m := NewMemStore()
+	m.Add("Downloads", "kernel.tar.gz")
+	_, ok, _ := m.Get("Downloads", "kernel.tar.gz")
+	if !ok {
+		t.Error("Did not properly add item to list.")
+	}
+}
+
+func TestGet(t *testing.T) {
+	m := NewMemStore()
+	m.Add("Downloads", "kernel.tar.gz")
+	_, ok, _ := m.Get("Downloads", "kernel.tar.gz")
+	if !ok {
+		t.Error("Did not properly get item from list.")
+	}
+	_, ok, _ = m.Get("Downloads", "I do not exist")
+	if ok {
+		t.Error("List claims to return value that was not added to list.")
+	}
+	_, ok, _ = m.Get("I do not exist", "kernel.tar.gz")
+	if ok {
+		t.Error("Non-existent list claims to return value.")
+	}
+
 }

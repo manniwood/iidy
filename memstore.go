@@ -32,7 +32,8 @@ func (m *MemStore) Get(listName string, itemID string) (attempts uint, ok bool, 
 	if !ok {
 		return 0, false, nil
 	}
-	return list[itemID], true, nil
+	item, ok := list[itemID]
+	return item, ok, nil
 }
 
 func (m *MemStore) Del(listName string, itemID string) (err error) {
