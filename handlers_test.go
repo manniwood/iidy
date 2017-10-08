@@ -13,7 +13,8 @@ func TestHelloWorldHandler(t *testing.T) {
 	}
 
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(HelloWorldHandler)
+	env := &Env{Store: NewMemStore()}
+	handler := http.Handler(Handler{Env: env, H: HelloWorldHandler})
 
 	handler.ServeHTTP(rr, req)
 
