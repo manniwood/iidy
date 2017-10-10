@@ -11,7 +11,7 @@ type MemStore struct {
 	store map[string]map[string]uint
 }
 
-func NewMemStore() *MemStore {
+func NewMemStore() Store {
 	m := make(map[string]map[string]uint)
 	s := MemStore{store: m}
 	return &s

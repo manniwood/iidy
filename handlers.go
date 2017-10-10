@@ -6,7 +6,7 @@ import (
 )
 
 type Env struct {
-	Store *MemStore
+	Store Store
 }
 
 type Handler struct {
