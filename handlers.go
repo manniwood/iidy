@@ -3,6 +3,7 @@ package iidy
 import (
 	"fmt"
 	"net/http"
+	"strings"
 )
 
 // The whole way of setting up these structs
@@ -26,4 +27,25 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func HelloWorldHandler(e *Env, w http.ResponseWriter, r *http.Request) {
 	// e now has our env
 	fmt.Fprint(w, "Hello World\n")
+}
+
+func ListHandler(e *Env, w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "PUT":
+		PutHandler(e, w, r)
+	default:
+		http.Error(w, "Unknown method.", http.StatusBadRequest)
+	}
+}
+
+func PutHandler(e *Env, w http.ResponseWriter, r *http.Request) {
+	urlParts := strings.Split(r.URL.Path, "/")
+	if len(urlParts) != 4 {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+	listName := urlParts[2]
+	itemName := urlParts[3]
+	e.Store.Add(listName, itemName)
+	fmt.Fprintf(w, "ADDED: %s, %s\n", listName, itemName)
 }
