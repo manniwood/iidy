@@ -28,6 +28,7 @@ func TestHelloWorldHandler(t *testing.T) {
 	}
 }
 
+// Do a table test or some such; too much repetition
 func TestListHandler(t *testing.T) {
 	req, err := http.NewRequest("PUT", "/lists/downloads/linux.tar.gz", nil)
 	if err != nil {
@@ -52,5 +53,23 @@ func TestListHandler(t *testing.T) {
 	_, ok, _ := env.Store.Get("downloads", "linux.tar.gz")
 	if !ok {
 		t.Error("Did not properly get item from list.")
+	}
+
+	req, err = http.NewRequest("GET", "/lists/downloads/linux.tar.gz", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr = httptest.NewRecorder()
+
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
+
+	expected = "0\n"
+	if rr.Body.String() != expected {
+		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}
 }
