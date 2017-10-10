@@ -32,15 +32,17 @@ func HelloWorldHandler(e *Env, w http.ResponseWriter, r *http.Request) {
 func ListHandler(e *Env, w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "PUT":
-		PutHandler(e, w, r)
+		parseNames(e, w, r, PutHandler)
 	case "GET":
-		GetHandler(e, w, r)
+		parseNames(e, w, r, GetHandler)
 	default:
 		http.Error(w, "Unknown method.", http.StatusBadRequest)
 	}
 }
 
-func PutHandler(e *Env, w http.ResponseWriter, r *http.Request) {
+type internalHandler func(e *Env, w http.ResponseWriter, r *http.Request, listName string, itemName string)
+
+func parseNames(e *Env, w http.ResponseWriter, r *http.Request, h internalHandler) {
 	urlParts := strings.Split(r.URL.Path, "/")
 	if len(urlParts) != 4 {
 		http.Error(w, "Bad request; needs to look like /lists/<listname>/<itemname>", http.StatusBadRequest)
@@ -48,18 +50,15 @@ func PutHandler(e *Env, w http.ResponseWriter, r *http.Request) {
 	}
 	listName := urlParts[2]
 	itemName := urlParts[3]
+	h(e, w, r, listName, itemName)
+}
+
+func PutHandler(e *Env, w http.ResponseWriter, r *http.Request, listName string, itemName string) {
 	e.Store.Add(listName, itemName)
 	fmt.Fprintf(w, "ADDED: %s, %s\n", listName, itemName)
 }
 
-func GetHandler(e *Env, w http.ResponseWriter, r *http.Request) {
-	urlParts := strings.Split(r.URL.Path, "/")
-	if len(urlParts) != 4 {
-		http.Error(w, "Bad request; needs to look like /lists/<listname>/<itemname>", http.StatusBadRequest)
-		return
-	}
-	listName := urlParts[2]
-	itemName := urlParts[3]
+func GetHandler(e *Env, w http.ResponseWriter, r *http.Request, listName string, itemName string) {
 	attempts, ok, err := e.Store.Get(listName, itemName)
 	if err != nil {
 		errStr := fmt.Sprintf("Error processing request; %v", err)
