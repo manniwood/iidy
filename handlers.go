@@ -35,6 +35,9 @@ func ListHandler(e *Env, w http.ResponseWriter, r *http.Request) {
 		parseNames(e, w, r, PutHandler)
 	case "GET":
 		parseNames(e, w, r, GetHandler)
+	case "INC":
+		parseNames(e, w, r, IncHandler)
+		// TODO: start here; do DEL
 	default:
 		http.Error(w, "Unknown method.", http.StatusBadRequest)
 	}
@@ -54,8 +57,23 @@ func parseNames(e *Env, w http.ResponseWriter, r *http.Request, h internalHandle
 }
 
 func PutHandler(e *Env, w http.ResponseWriter, r *http.Request, listName string, itemName string) {
-	e.Store.Add(listName, itemName)
+	err := e.Store.Add(listName, itemName)
+	if err != nil {
+		errStr := fmt.Sprintf("Error processing request; %v", err)
+		http.Error(w, errStr, http.StatusInternalServerError)
+		return
+	}
 	fmt.Fprintf(w, "ADDED: %s, %s\n", listName, itemName)
+}
+
+func IncHandler(e *Env, w http.ResponseWriter, r *http.Request, listName string, itemName string) {
+	err := e.Store.Inc(listName, itemName)
+	if err != nil {
+		errStr := fmt.Sprintf("Error processing request; %v", err)
+		http.Error(w, errStr, http.StatusInternalServerError)
+		return
+	}
+	fmt.Fprintf(w, "INCREMENTED: %s, %s\n", listName, itemName)
 }
 
 func GetHandler(e *Env, w http.ResponseWriter, r *http.Request, listName string, itemName string) {
