@@ -2,6 +2,7 @@ package iidy
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/pkg/errors"
 )
@@ -9,6 +10,9 @@ import (
 type MemStore struct {
 	// map[list name]map[list item ID]number of attempts
 	store map[string]map[string]uint
+	// mutex to serialize access to the map; essentially,
+	// the behavior will be single-threaded, like Redis
+	mutex sync.Mutex
 }
 
 func NewMemStore() Store {
@@ -18,6 +22,8 @@ func NewMemStore() Store {
 }
 
 func (m *MemStore) Add(listName string, itemID string) (err error) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
 	list, ok := m.store[listName]
 	if !ok {
 		list = make(map[string]uint)
@@ -28,6 +34,8 @@ func (m *MemStore) Add(listName string, itemID string) (err error) {
 }
 
 func (m *MemStore) Get(listName string, itemID string) (attempts uint, ok bool, err error) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
 	list, ok := m.store[listName]
 	if !ok {
 		return 0, false, nil
@@ -37,6 +45,8 @@ func (m *MemStore) Get(listName string, itemID string) (attempts uint, ok bool, 
 }
 
 func (m *MemStore) Del(listName string, itemID string) (err error) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
 	list, ok := m.store[listName]
 	if !ok {
 		return nil
@@ -46,6 +56,8 @@ func (m *MemStore) Del(listName string, itemID string) (err error) {
 }
 
 func (m *MemStore) Inc(listName string, itemID string) (err error) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
 	list, ok := m.store[listName]
 	if !ok {
 		return errors.New(fmt.Sprintf("List %s does not exist", listName))
