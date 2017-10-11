@@ -24,11 +24,6 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.H(h.Env, w, r)
 }
 
-func HelloWorldHandler(e *Env, w http.ResponseWriter, r *http.Request) {
-	// e now has our env
-	fmt.Fprint(w, "Hello World\n")
-}
-
 func ListHandler(e *Env, w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "PUT":
