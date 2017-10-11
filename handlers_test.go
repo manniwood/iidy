@@ -7,7 +7,7 @@ import (
 )
 
 // Do a table test or some such; too much repetition
-func TestListHandler(t *testing.T) {
+func TestPutHandler(t *testing.T) {
 	req, err := http.NewRequest("PUT", "/lists/downloads/linux.tar.gz", nil)
 	if err != nil {
 		t.Fatal(err)
@@ -32,9 +32,22 @@ func TestListHandler(t *testing.T) {
 	if !ok {
 		t.Error("Did not properly get item from list.")
 	}
+}
 
-	// GET
+func TestGetHandler(t *testing.T) {
+	// first, put a value (putting is tested above)
+	req, err := http.NewRequest("PUT", "/lists/downloads/linux.tar.gz", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 
+	rr := httptest.NewRecorder()
+	env := &Env{Store: NewMemStore()}
+	handler := http.Handler(Handler{Env: env, H: ListHandler})
+
+	handler.ServeHTTP(rr, req)
+
+	// now, get the value
 	req, err = http.NewRequest("GET", "/lists/downloads/linux.tar.gz", nil)
 	if err != nil {
 		t.Fatal(err)
@@ -48,13 +61,26 @@ func TestListHandler(t *testing.T) {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
 
-	expected = "0\n"
+	expected := "0\n"
 	if rr.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}
+}
 
-	// INC
+func TestIncHandler(t *testing.T) {
+	// first, put a value (putting is tested above)
+	req, err := http.NewRequest("PUT", "/lists/downloads/linux.tar.gz", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 
+	rr := httptest.NewRecorder()
+	env := &Env{Store: NewMemStore()}
+	handler := http.Handler(Handler{Env: env, H: ListHandler})
+
+	handler.ServeHTTP(rr, req)
+
+	// now, increment the value
 	req, err = http.NewRequest("INC", "/lists/downloads/linux.tar.gz", nil)
 	if err != nil {
 		t.Fatal(err)
@@ -68,7 +94,7 @@ func TestListHandler(t *testing.T) {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
 
-	expected = "INCREMENTED: downloads, linux.tar.gz\n"
+	expected := "INCREMENTED: downloads, linux.tar.gz\n"
 	if rr.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}
@@ -91,9 +117,22 @@ func TestListHandler(t *testing.T) {
 	if rr.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}
+}
 
-	// DEL
+func TestDelHandler(t *testing.T) {
+	// first, put a value (putting is tested above)
+	req, err := http.NewRequest("PUT", "/lists/downloads/linux.tar.gz", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 
+	rr := httptest.NewRecorder()
+	env := &Env{Store: NewMemStore()}
+	handler := http.Handler(Handler{Env: env, H: ListHandler})
+
+	handler.ServeHTTP(rr, req)
+
+	// Now the value should be deletable with DEL
 	req, err = http.NewRequest("DEL", "/lists/downloads/linux.tar.gz", nil)
 	if err != nil {
 		t.Fatal(err)
@@ -107,7 +146,7 @@ func TestListHandler(t *testing.T) {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
 
-	expected = "DELETED: downloads, linux.tar.gz\n"
+	expected := "DELETED: downloads, linux.tar.gz\n"
 	if rr.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}
