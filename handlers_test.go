@@ -33,6 +33,8 @@ func TestListHandler(t *testing.T) {
 		t.Error("Did not properly get item from list.")
 	}
 
+	// GET
+
 	req, err = http.NewRequest("GET", "/lists/downloads/linux.tar.gz", nil)
 	if err != nil {
 		t.Fatal(err)
@@ -50,6 +52,8 @@ func TestListHandler(t *testing.T) {
 	if rr.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}
+
+	// INC
 
 	req, err = http.NewRequest("INC", "/lists/downloads/linux.tar.gz", nil)
 	if err != nil {
@@ -86,5 +90,45 @@ func TestListHandler(t *testing.T) {
 	expected = "1\n"
 	if rr.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
+	}
+
+	// DEL
+
+	req, err = http.NewRequest("DEL", "/lists/downloads/linux.tar.gz", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr = httptest.NewRecorder()
+
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
+
+	expected = "DELETED: downloads, linux.tar.gz\n"
+	if rr.Body.String() != expected {
+		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
+	}
+
+	// Now the deleted value should not be fetchable with GET
+	req, err = http.NewRequest("GET", "/lists/downloads/linux.tar.gz", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr = httptest.NewRecorder()
+
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusNotFound {
+		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
+
+	// NOTE that a trailing newline is added for us by http.Error
+	expected = "Not found.\n"
+	if rr.Body.String() != expected {
+		t.Errorf("handler returned unexpected body: got '%v' want '%v'", rr.Body.String(), expected)
 	}
 }

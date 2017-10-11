@@ -32,7 +32,8 @@ func ListHandler(e *Env, w http.ResponseWriter, r *http.Request) {
 		parseNames(e, w, r, GetHandler)
 	case "INC":
 		parseNames(e, w, r, IncHandler)
-		// TODO: start here; do DEL
+	case "DEL":
+		parseNames(e, w, r, DelHandler)
 	default:
 		http.Error(w, "Unknown method.", http.StatusBadRequest)
 	}
@@ -69,6 +70,16 @@ func IncHandler(e *Env, w http.ResponseWriter, r *http.Request, listName string,
 		return
 	}
 	fmt.Fprintf(w, "INCREMENTED: %s, %s\n", listName, itemName)
+}
+
+func DelHandler(e *Env, w http.ResponseWriter, r *http.Request, listName string, itemName string) {
+	err := e.Store.Del(listName, itemName)
+	if err != nil {
+		errStr := fmt.Sprintf("Error processing request; %v", err)
+		http.Error(w, errStr, http.StatusInternalServerError)
+		return
+	}
+	fmt.Fprintf(w, "DELETED: %s, %s\n", listName, itemName)
 }
 
 func GetHandler(e *Env, w http.ResponseWriter, r *http.Request, listName string, itemName string) {
