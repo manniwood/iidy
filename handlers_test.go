@@ -35,25 +35,18 @@ func TestPutHandler(t *testing.T) {
 }
 
 func TestGetHandler(t *testing.T) {
-	// first, put a value (putting is tested above)
-	req, err := http.NewRequest("PUT", "/lists/downloads/linux.tar.gz", nil)
+
+	env := &Env{Store: NewMemStore()}
+	putStartingValue(t, env)
+
+	// now, get the value
+	req, err := http.NewRequest("GET", "/lists/downloads/linux.tar.gz", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	rr := httptest.NewRecorder()
-	env := &Env{Store: NewMemStore()}
 	handler := http.Handler(Handler{Env: env, H: ListHandler})
-
-	handler.ServeHTTP(rr, req)
-
-	// now, get the value
-	req, err = http.NewRequest("GET", "/lists/downloads/linux.tar.gz", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	rr = httptest.NewRecorder()
 
 	handler.ServeHTTP(rr, req)
 
@@ -68,25 +61,18 @@ func TestGetHandler(t *testing.T) {
 }
 
 func TestIncHandler(t *testing.T) {
-	// first, put a value (putting is tested above)
-	req, err := http.NewRequest("PUT", "/lists/downloads/linux.tar.gz", nil)
+
+	env := &Env{Store: NewMemStore()}
+	putStartingValue(t, env)
+
+	// now, increment the value
+	req, err := http.NewRequest("INC", "/lists/downloads/linux.tar.gz", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	rr := httptest.NewRecorder()
-	env := &Env{Store: NewMemStore()}
 	handler := http.Handler(Handler{Env: env, H: ListHandler})
-
-	handler.ServeHTTP(rr, req)
-
-	// now, increment the value
-	req, err = http.NewRequest("INC", "/lists/downloads/linux.tar.gz", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	rr = httptest.NewRecorder()
 
 	handler.ServeHTTP(rr, req)
 
@@ -120,25 +106,18 @@ func TestIncHandler(t *testing.T) {
 }
 
 func TestDelHandler(t *testing.T) {
-	// first, put a value (putting is tested above)
-	req, err := http.NewRequest("PUT", "/lists/downloads/linux.tar.gz", nil)
+
+	env := &Env{Store: NewMemStore()}
+	putStartingValue(t, env)
+
+	// Now the value should be deletable with DEL
+	req, err := http.NewRequest("DEL", "/lists/downloads/linux.tar.gz", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	rr := httptest.NewRecorder()
-	env := &Env{Store: NewMemStore()}
 	handler := http.Handler(Handler{Env: env, H: ListHandler})
-
-	handler.ServeHTTP(rr, req)
-
-	// Now the value should be deletable with DEL
-	req, err = http.NewRequest("DEL", "/lists/downloads/linux.tar.gz", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	rr = httptest.NewRecorder()
 
 	handler.ServeHTTP(rr, req)
 
@@ -170,4 +149,17 @@ func TestDelHandler(t *testing.T) {
 	if rr.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got '%v' want '%v'", rr.Body.String(), expected)
 	}
+}
+
+func putStartingValue(t *testing.T, env *Env) {
+	// first, put a value (putting is tested above)
+	req, err := http.NewRequest("PUT", "/lists/downloads/linux.tar.gz", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+	handler := http.Handler(Handler{Env: env, H: ListHandler})
+
+	handler.ServeHTTP(rr, req)
 }
