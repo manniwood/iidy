@@ -25,23 +25,6 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func ListHandler(e *Env, w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case "PUT":
-		parseNames(e, w, r, PutHandler)
-	case "GET":
-		parseNames(e, w, r, GetHandler)
-	case "INC":
-		parseNames(e, w, r, IncHandler)
-	case "DEL":
-		parseNames(e, w, r, DelHandler)
-	default:
-		http.Error(w, "Unknown method.", http.StatusBadRequest)
-	}
-}
-
-type internalHandler func(e *Env, w http.ResponseWriter, r *http.Request, listName string, itemName string)
-
-func parseNames(e *Env, w http.ResponseWriter, r *http.Request, h internalHandler) {
 	urlParts := strings.Split(r.URL.Path, "/")
 	if len(urlParts) != 4 {
 		http.Error(w, "Bad request; needs to look like /lists/<listname>/<itemname>", http.StatusBadRequest)
@@ -49,7 +32,19 @@ func parseNames(e *Env, w http.ResponseWriter, r *http.Request, h internalHandle
 	}
 	listName := urlParts[2]
 	itemName := urlParts[3]
-	h(e, w, r, listName, itemName)
+
+	switch r.Method {
+	case "PUT":
+		PutHandler(e, w, r, listName, itemName)
+	case "GET":
+		GetHandler(e, w, r, listName, itemName)
+	case "INC":
+		IncHandler(e, w, r, listName, itemName)
+	case "DEL":
+		DelHandler(e, w, r, listName, itemName)
+	default:
+		http.Error(w, "Unknown method.", http.StatusBadRequest)
+	}
 }
 
 func PutHandler(e *Env, w http.ResponseWriter, r *http.Request, listName string, itemName string) {
