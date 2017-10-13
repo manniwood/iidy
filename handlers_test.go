@@ -238,3 +238,6 @@ func TestBulkGetHandler(t *testing.T) {
 		}
 	}
 }
+
+func TestBulkIncHandler(t *testing.T) {
+}

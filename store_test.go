@@ -127,7 +127,7 @@ func ItemSlicesAreEqual(files []ListItem, items []ListItem) bool {
 	return true
 }
 
-func TestBulkDel(t *testing.T) {
+func TestBulkInc(t *testing.T) {
 	s := getEmptyStore(t)
 	files := []string{"a", "b", "c", "d", "e", "f", "g"}
 	err := s.BulkAdd("downloads", files)
@@ -142,7 +142,10 @@ func TestBulkDel(t *testing.T) {
 		t.Errorf("Bulk incremented wrong number of items. Expected 5, got %v", count)
 	}
 	for _, file := range []string{"a", "b", "c", "d", "e"} {
-		attempts, ok, _ := s.Get("downloads", file)
+		attempts, ok, err := s.Get("downloads", file)
+		if err != nil {
+			t.Errorf("Error getting item: %v", err)
+		}
 		if !ok {
 			t.Errorf("Did not properly get item %v from list.", file)
 		}
@@ -151,9 +154,49 @@ func TestBulkDel(t *testing.T) {
 		}
 	}
 	for _, file := range []string{"f", "g"} {
-		attempts, ok, _ := s.Get("downloads", file)
+		attempts, ok, err := s.Get("downloads", file)
+		if err != nil {
+			t.Errorf("Error getting item: %v", err)
+		}
 		if !ok {
 			t.Errorf("Did not properly get item %v from list.", file)
+		}
+		if attempts != 0 {
+			t.Errorf("Item %v is incorrectly incremented.", file)
+		}
+	}
+}
+
+func TestBulkDel(t *testing.T) {
+	s := getEmptyStore(t)
+	files := []string{"a", "b", "c", "d", "e", "f", "g"}
+	err := s.BulkAdd("downloads", files)
+	if err != nil {
+		t.Errorf("Error bulk inserting: %w", err)
+	}
+	count, err := s.BulkDel("downloads", []string{"a", "b", "c", "d", "e"})
+	if err != nil {
+		t.Errorf("Error bulk deleting: %w", err)
+	}
+	if count != 5 {
+		t.Errorf("Bulk deleted wrong number of items. Expected 5, got %v", count)
+	}
+	for _, file := range []string{"a", "b", "c", "d", "e"} {
+		_, ok, err := s.Get("downloads", file)
+		if err != nil {
+			t.Errorf("Error getting item: %v", err)
+		}
+		if ok {
+			t.Errorf("Found item %v that should have been deleted from list.", file)
+		}
+	}
+	for _, file := range []string{"f", "g"} {
+		attempts, ok, err := s.Get("downloads", file)
+		if err != nil {
+			t.Errorf("Error getting item: %v", err)
+		}
+		if !ok {
+			t.Errorf("Item %v should not have been deleted from list.", file)
 		}
 		if attempts != 0 {
 			t.Errorf("Item %v is incorrectly incremented.", file)
