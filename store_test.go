@@ -13,8 +13,8 @@ func getEmptyStore(t *testing.T) *PgStore {
 
 func TestAdd(t *testing.T) {
 	s := getEmptyStore(t)
-	s.Add("Downloads", "kernel.tar.gz")
-	_, ok, _ := s.Get("Downloads", "kernel.tar.gz")
+	s.Add("downloads", "kernel.tar.gz")
+	_, ok, _ := s.Get("downloads", "kernel.tar.gz")
 	if !ok {
 		t.Error("Did not properly add item to list.")
 	}
@@ -22,12 +22,12 @@ func TestAdd(t *testing.T) {
 
 func TestGet(t *testing.T) {
 	s := getEmptyStore(t)
-	s.Add("Downloads", "kernel.tar.gz")
-	_, ok, _ := s.Get("Downloads", "kernel.tar.gz")
+	s.Add("downloads", "kernel.tar.gz")
+	_, ok, _ := s.Get("downloads", "kernel.tar.gz")
 	if !ok {
 		t.Error("Did not properly get item from list.")
 	}
-	_, ok, _ = s.Get("Downloads", "I do not exist")
+	_, ok, _ = s.Get("downloads", "I do not exist")
 	if ok {
 		t.Error("List claims to return value that was not added to list.")
 	}
@@ -39,12 +39,12 @@ func TestGet(t *testing.T) {
 
 func TestDel(t *testing.T) {
 	s := getEmptyStore(t)
-	s.Add("Downloads", "kernel.tar.gz")
-	err := s.Del("Downloads", "kernel.tar.gz")
+	s.Add("downloads", "kernel.tar.gz")
+	err := s.Del("downloads", "kernel.tar.gz")
 	if err != nil {
 		t.Errorf("Error trying to delete item from list: %v", err)
 	}
-	_, ok, _ := s.Get("Downloads", "kernel.tar.gz")
+	_, ok, _ := s.Get("downloads", "kernel.tar.gz")
 	if ok {
 		t.Error("Did not properly delete item to list.")
 	}
@@ -52,9 +52,9 @@ func TestDel(t *testing.T) {
 
 func TestInc(t *testing.T) {
 	s := getEmptyStore(t)
-	s.Add("Downloads", "kernel.tar.gz")
-	s.Inc("Downloads", "kernel.tar.gz")
-	attempts, ok, _ := s.Get("Downloads", "kernel.tar.gz")
+	s.Add("downloads", "kernel.tar.gz")
+	s.Inc("downloads", "kernel.tar.gz")
+	attempts, ok, _ := s.Get("downloads", "kernel.tar.gz")
 	if !ok {
 		t.Error("Did not properly add item to list.")
 	}
@@ -66,12 +66,12 @@ func TestInc(t *testing.T) {
 func TestBulkAdd(t *testing.T) {
 	s := getEmptyStore(t)
 	files := []string{"kernel.tar.gz", "vim.tar.gz", "robots.txt"}
-	err := s.BulkAdd("Downloads", files)
+	err := s.BulkAdd("downloads", files)
 	if err != nil {
 		t.Errorf("Error bulk inserting: %w", err)
 	}
 	for _, file := range files {
-		attempts, ok, _ := s.Get("Downloads", file)
+		attempts, ok, _ := s.Get("downloads", file)
 		if attempts != 0 {
 			t.Errorf("Attempts for freshly-created %v is not 0", file)
 		}
@@ -93,13 +93,13 @@ func TestBulkGet(t *testing.T) {
 	}
 	s := getEmptyStore(t)
 	files := []string{"a", "b", "c", "d", "e", "f", "g"}
-	err := s.BulkAdd("Downloads", files)
+	err := s.BulkAdd("downloads", files)
 	if err != nil {
 		t.Errorf("Error bulk inserting: %w", err)
 	}
 
 	for _, test := range tests {
-		items, err := s.BulkGet("Downloads", test.startKey, 2)
+		items, err := s.BulkGet("downloads", test.startKey, 2)
 		if err != nil {
 			t.Errorf("Error bulk fetching: %v", err)
 		}
@@ -130,11 +130,11 @@ func ItemSlicesAreEqual(files []ListItem, items []ListItem) bool {
 func TestBulkDel(t *testing.T) {
 	s := getEmptyStore(t)
 	files := []string{"a", "b", "c", "d", "e", "f", "g"}
-	err := s.BulkAdd("Downloads", files)
+	err := s.BulkAdd("downloads", files)
 	if err != nil {
 		t.Errorf("Error bulk inserting: %w", err)
 	}
-	count, err := s.BulkInc("Downloads", []string{"a", "b", "c", "d", "e"})
+	count, err := s.BulkInc("downloads", []string{"a", "b", "c", "d", "e"})
 	if err != nil {
 		t.Errorf("Error bulk incrementing: %w", err)
 	}
@@ -142,7 +142,7 @@ func TestBulkDel(t *testing.T) {
 		t.Errorf("Bulk incremented wrong number of items. Expected 5, got %v", count)
 	}
 	for _, file := range []string{"a", "b", "c", "d", "e"} {
-		attempts, ok, _ := s.Get("Downloads", file)
+		attempts, ok, _ := s.Get("downloads", file)
 		if !ok {
 			t.Errorf("Did not properly get item %v from list.", file)
 		}
@@ -151,7 +151,7 @@ func TestBulkDel(t *testing.T) {
 		}
 	}
 	for _, file := range []string{"f", "g"} {
-		attempts, ok, _ := s.Get("Downloads", file)
+		attempts, ok, _ := s.Get("downloads", file)
 		if !ok {
 			t.Errorf("Did not properly get item %v from list.", file)
 		}

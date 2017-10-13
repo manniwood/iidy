@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
@@ -37,7 +38,7 @@ func ListHandler(e *Env, w http.ResponseWriter, r *http.Request) {
 		}
 		listName = urlParts[2]
 		itemName = urlParts[3]
-	case "BULKPUT":
+	case "BULKPUT", "BULKGET":
 		if len(urlParts) != 3 {
 			http.Error(w, "Bad request; needs to look like /lists/<listname>", http.StatusBadRequest)
 			return
@@ -58,6 +59,8 @@ func ListHandler(e *Env, w http.ResponseWriter, r *http.Request) {
 		DelHandler(e, w, r, listName, itemName)
 	case "BULKPUT":
 		BulkPutHandler(e, w, r, listName)
+	case "BULKGET":
+		BulkGetHandler(e, w, r, listName)
 	default:
 		http.Error(w, "Unknown method.", http.StatusBadRequest)
 	}
@@ -124,4 +127,24 @@ func BulkPutHandler(e *Env, w http.ResponseWriter, r *http.Request, listName str
 		return
 	}
 	fmt.Fprint(w, "ADDED")
+}
+
+func BulkGetHandler(e *Env, w http.ResponseWriter, r *http.Request, listName string) {
+	startID := r.Header.Get("X-IIDY-Start-Key")
+	countStr := r.Header.Get("X-IIDY-Count")
+	if countStr == "" {
+		http.Error(w, "Header not found: X-IIDY-Count", http.StatusBadRequest)
+		return
+	}
+	count, err := strconv.Atoi(countStr)
+	if err != nil {
+		errStr := fmt.Sprintf("For header X-IIDY-Count, %v is not a number: %v", countStr, err)
+		http.Error(w, errStr, http.StatusInternalServerError)
+		return
+	}
+	listItems, err := e.Store.BulkGet(listName, startID, count)
+	for _, listItem := range listItems {
+		fmt.Fprintf(w, "%s %d\n", listItem.Item, listItem.Attempts)
+	}
+
 }

@@ -196,3 +196,45 @@ robots.txt`)
 		t.Errorf("Expected %v; got %v", expected, listItems)
 	}
 }
+
+func TestBulkGetHandler(t *testing.T) {
+	s := getEmptyStore(t)
+	files := []string{"a", "b", "c", "d", "e", "f", "g"}
+	err := s.BulkAdd("downloads", files)
+	if err != nil {
+		t.Errorf("Error bulk inserting: %w", err)
+	}
+
+	var tests = []struct {
+		startKey string
+		want     string
+	}{
+		{"", "a 0\nb 0\n"},
+		{"b", "c 0\nd 0\n"},
+		{"d", "e 0\nf 0\n"},
+		{"f", "g 0\n"},
+	}
+	for _, test := range tests {
+		req, err := http.NewRequest("BULKGET", "/lists/downloads", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if test.startKey != "" {
+			req.Header.Set("X-IIDY-Start-Key", test.startKey)
+		}
+		req.Header.Set("X-IIDY-Count", "2")
+
+		rr := httptest.NewRecorder()
+		env := &Env{Store: s}
+		handler := http.Handler(Handler{Env: env, H: ListHandler})
+
+		handler.ServeHTTP(rr, req)
+
+		if status := rr.Code; status != http.StatusOK {
+			t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+		}
+		if rr.Body.String() != test.want {
+			t.Errorf("handler returned unexpected body: got '%v' want '%v'", rr.Body.String(), test.want)
+		}
+	}
+}
