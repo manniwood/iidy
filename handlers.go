@@ -38,7 +38,7 @@ func ListHandler(e *Env, w http.ResponseWriter, r *http.Request) {
 		}
 		listName = urlParts[2]
 		itemName = urlParts[3]
-	case "BULKPUT", "BULKGET":
+	case "BULKPUT", "BULKGET", "BULKINCREMENT":
 		if len(urlParts) != 3 {
 			http.Error(w, "Bad request; needs to look like /lists/<listname>", http.StatusBadRequest)
 			return
@@ -61,6 +61,8 @@ func ListHandler(e *Env, w http.ResponseWriter, r *http.Request) {
 		BulkPutHandler(e, w, r, listName)
 	case "BULKGET":
 		BulkGetHandler(e, w, r, listName)
+	case "BULKINCREMENT":
+		BulkIncHandler(e, w, r, listName)
 	default:
 		http.Error(w, "Unknown method.", http.StatusBadRequest)
 	}
@@ -146,5 +148,23 @@ func BulkGetHandler(e *Env, w http.ResponseWriter, r *http.Request, listName str
 	for _, listItem := range listItems {
 		fmt.Fprintf(w, "%s %d\n", listItem.Item, listItem.Attempts)
 	}
+}
 
+func BulkIncHandler(e *Env, w http.ResponseWriter, r *http.Request, listName string) {
+	bodyBytes, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		errStr := fmt.Sprintf("Error reading body: %v", err)
+		http.Error(w, errStr, http.StatusBadRequest)
+		return
+	}
+	// TODO: trim trailing newlines from bodyBytes first.
+	itemNames := strings.Split(string(bodyBytes[:]), "\n")
+
+	count, err := e.Store.BulkInc(listName, itemNames)
+	if err != nil {
+		errStr := fmt.Sprintf("Error trying to add list item: %v", err)
+		http.Error(w, errStr, http.StatusInternalServerError)
+		return
+	}
+	fmt.Fprintf(w, "INCREMENTED %d\n", count)
 }

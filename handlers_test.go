@@ -240,4 +240,60 @@ func TestBulkGetHandler(t *testing.T) {
 }
 
 func TestBulkIncHandler(t *testing.T) {
+	s := getEmptyStore(t)
+	files := []string{"a", "b", "c", "d", "e", "f", "g"}
+	err := s.BulkAdd("downloads", files)
+	if err != nil {
+		t.Errorf("Error bulk inserting: %w", err)
+	}
+	body := []byte(`a
+b
+c
+d
+e`)
+	req, err := http.NewRequest("BULKINCREMENT", "/lists/downloads", bytes.NewBuffer(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+	env := &Env{Store: s}
+	handler := http.Handler(Handler{Env: env, H: ListHandler})
+
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
+
+	expected := "INCREMENTED 5\n"
+	if rr.Body.String() != expected {
+		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
+	}
+
+	for _, file := range []string{"a", "b", "c", "d", "e"} {
+		attempts, ok, err := s.Get("downloads", file)
+		if err != nil {
+			t.Errorf("Error getting item: %v", err)
+		}
+		if !ok {
+			t.Errorf("Did not properly get item %v from list.", file)
+		}
+		if attempts != 1 {
+			t.Errorf("Did not properly increment item %v.", file)
+		}
+	}
+	for _, file := range []string{"f", "g"} {
+		attempts, ok, err := s.Get("downloads", file)
+		if err != nil {
+			t.Errorf("Error getting item: %v", err)
+		}
+		if !ok {
+			t.Errorf("Did not properly get item %v from list.", file)
+		}
+		if attempts != 0 {
+			t.Errorf("Item %v is incorrectly incremented.", file)
+		}
+	}
+
 }
