@@ -12,7 +12,7 @@ import (
 // https://elithrar.github.io/article/http-handler-error-handling-revisited/
 
 type Env struct {
-	Store Store
+	Store *PgStore
 }
 
 type Handler struct {

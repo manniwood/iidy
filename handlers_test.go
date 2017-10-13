@@ -14,7 +14,7 @@ func TestPutHandler(t *testing.T) {
 	}
 
 	rr := httptest.NewRecorder()
-	env := &Env{Store: NewMemStore()}
+	env := &Env{Store: getEmptyStore(t)}
 	handler := http.Handler(Handler{Env: env, H: ListHandler})
 
 	handler.ServeHTTP(rr, req)
@@ -36,7 +36,7 @@ func TestPutHandler(t *testing.T) {
 
 func TestGetHandler(t *testing.T) {
 
-	env := &Env{Store: NewMemStore()}
+	env := &Env{Store: getEmptyStore(t)}
 	putStartingValue(t, env)
 
 	// now, get the value
@@ -62,7 +62,7 @@ func TestGetHandler(t *testing.T) {
 
 func TestIncHandler(t *testing.T) {
 
-	env := &Env{Store: NewMemStore()}
+	env := &Env{Store: getEmptyStore(t)}
 	putStartingValue(t, env)
 
 	// now, increment the value
@@ -107,7 +107,7 @@ func TestIncHandler(t *testing.T) {
 
 func TestDelHandler(t *testing.T) {
 
-	env := &Env{Store: NewMemStore()}
+	env := &Env{Store: getEmptyStore(t)}
 	putStartingValue(t, env)
 
 	// Now the value should be deletable with DEL
