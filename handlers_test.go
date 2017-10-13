@@ -6,7 +6,6 @@ import (
 	"testing"
 )
 
-// Do a table test or some such; too much repetition
 func TestPutHandler(t *testing.T) {
 	req, err := http.NewRequest("PUT", "/lists/downloads/linux.tar.gz", nil)
 	if err != nil {
@@ -37,7 +36,7 @@ func TestPutHandler(t *testing.T) {
 func TestGetHandler(t *testing.T) {
 
 	env := &Env{Store: getEmptyStore(t)}
-	putStartingValue(t, env)
+	putSingleStartingValue(t, env)
 
 	// now, get the value
 	req, err := http.NewRequest("GET", "/lists/downloads/linux.tar.gz", nil)
@@ -63,7 +62,7 @@ func TestGetHandler(t *testing.T) {
 func TestIncHandler(t *testing.T) {
 
 	env := &Env{Store: getEmptyStore(t)}
-	putStartingValue(t, env)
+	putSingleStartingValue(t, env)
 
 	// now, increment the value
 	req, err := http.NewRequest("INCREMENT", "/lists/downloads/linux.tar.gz", nil)
@@ -108,7 +107,7 @@ func TestIncHandler(t *testing.T) {
 func TestDelHandler(t *testing.T) {
 
 	env := &Env{Store: getEmptyStore(t)}
-	putStartingValue(t, env)
+	putSingleStartingValue(t, env)
 
 	// Now the value should be deletable with DELETE
 	req, err := http.NewRequest("DELETE", "/lists/downloads/linux.tar.gz", nil)
@@ -144,15 +143,14 @@ func TestDelHandler(t *testing.T) {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
 
-	// NOTE that a trailing newline is added for us by http.Error
+	// NOTE to test maintainers: a trailing newline is added for us by http.Error
 	expected = "Not found.\n"
 	if rr.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got '%v' want '%v'", rr.Body.String(), expected)
 	}
 }
 
-func putStartingValue(t *testing.T, env *Env) {
-	// first, put a value (putting is tested above)
+func putSingleStartingValue(t *testing.T, env *Env) {
 	req, err := http.NewRequest("PUT", "/lists/downloads/linux.tar.gz", nil)
 	if err != nil {
 		t.Fatal(err)
