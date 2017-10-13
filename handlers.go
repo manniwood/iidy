@@ -38,9 +38,9 @@ func ListHandler(e *Env, w http.ResponseWriter, r *http.Request) {
 		PutHandler(e, w, r, listName, itemName)
 	case "GET":
 		GetHandler(e, w, r, listName, itemName)
-	case "INC":
+	case "INCREMENT":
 		IncHandler(e, w, r, listName, itemName)
-	case "DEL":
+	case "DELETE":
 		DelHandler(e, w, r, listName, itemName)
 	default:
 		http.Error(w, "Unknown method.", http.StatusBadRequest)
@@ -50,7 +50,7 @@ func ListHandler(e *Env, w http.ResponseWriter, r *http.Request) {
 func PutHandler(e *Env, w http.ResponseWriter, r *http.Request, listName string, itemName string) {
 	err := e.Store.Add(listName, itemName)
 	if err != nil {
-		errStr := fmt.Sprintf("Error processing request; %v", err)
+		errStr := fmt.Sprintf("Error trying to add list item: %v", err)
 		http.Error(w, errStr, http.StatusInternalServerError)
 		return
 	}
@@ -60,7 +60,7 @@ func PutHandler(e *Env, w http.ResponseWriter, r *http.Request, listName string,
 func IncHandler(e *Env, w http.ResponseWriter, r *http.Request, listName string, itemName string) {
 	err := e.Store.Inc(listName, itemName)
 	if err != nil {
-		errStr := fmt.Sprintf("Error processing request; %v", err)
+		errStr := fmt.Sprintf("Error trying to increment list item: %v", err)
 		http.Error(w, errStr, http.StatusInternalServerError)
 		return
 	}
@@ -70,7 +70,7 @@ func IncHandler(e *Env, w http.ResponseWriter, r *http.Request, listName string,
 func DelHandler(e *Env, w http.ResponseWriter, r *http.Request, listName string, itemName string) {
 	err := e.Store.Del(listName, itemName)
 	if err != nil {
-		errStr := fmt.Sprintf("Error processing request; %v", err)
+		errStr := fmt.Sprintf("Error trying to delete list item: %v", err)
 		http.Error(w, errStr, http.StatusInternalServerError)
 		return
 	}
@@ -80,7 +80,7 @@ func DelHandler(e *Env, w http.ResponseWriter, r *http.Request, listName string,
 func GetHandler(e *Env, w http.ResponseWriter, r *http.Request, listName string, itemName string) {
 	attempts, ok, err := e.Store.Get(listName, itemName)
 	if err != nil {
-		errStr := fmt.Sprintf("Error processing request; %v", err)
+		errStr := fmt.Sprintf("Error trying to get list item: %v", err)
 		http.Error(w, errStr, http.StatusInternalServerError)
 		return
 	}

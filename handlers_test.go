@@ -66,7 +66,7 @@ func TestIncHandler(t *testing.T) {
 	putStartingValue(t, env)
 
 	// now, increment the value
-	req, err := http.NewRequest("INC", "/lists/downloads/linux.tar.gz", nil)
+	req, err := http.NewRequest("INCREMENT", "/lists/downloads/linux.tar.gz", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -110,8 +110,8 @@ func TestDelHandler(t *testing.T) {
 	env := &Env{Store: getEmptyStore(t)}
 	putStartingValue(t, env)
 
-	// Now the value should be deletable with DEL
-	req, err := http.NewRequest("DEL", "/lists/downloads/linux.tar.gz", nil)
+	// Now the value should be deletable with DELETE
+	req, err := http.NewRequest("DELETE", "/lists/downloads/linux.tar.gz", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
