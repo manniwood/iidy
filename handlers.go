@@ -2,6 +2,7 @@ package iidy
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strings"
 )
@@ -26,12 +27,25 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func ListHandler(e *Env, w http.ResponseWriter, r *http.Request) {
 	urlParts := strings.Split(r.URL.Path, "/")
-	if len(urlParts) != 4 {
-		http.Error(w, "Bad request; needs to look like /lists/<listname>/<itemname>", http.StatusBadRequest)
-		return
+	var listName string
+	var itemName string
+	switch r.Method {
+	case "PUT", "GET", "INCREMENT", "DELETE":
+		if len(urlParts) != 4 {
+			http.Error(w, "Bad request; needs to look like /lists/<listname>/<itemname>", http.StatusBadRequest)
+			return
+		}
+		listName = urlParts[2]
+		itemName = urlParts[3]
+	case "BULKPUT":
+		if len(urlParts) != 3 {
+			http.Error(w, "Bad request; needs to look like /lists/<listname>", http.StatusBadRequest)
+			return
+		}
+		listName = urlParts[2]
+	default:
+		http.Error(w, "Unknown method.", http.StatusBadRequest)
 	}
-	listName := urlParts[2]
-	itemName := urlParts[3]
 
 	switch r.Method {
 	case "PUT":
@@ -42,6 +56,8 @@ func ListHandler(e *Env, w http.ResponseWriter, r *http.Request) {
 		IncHandler(e, w, r, listName, itemName)
 	case "DELETE":
 		DelHandler(e, w, r, listName, itemName)
+	case "BULKPUT":
+		BulkPutHandler(e, w, r, listName)
 	default:
 		http.Error(w, "Unknown method.", http.StatusBadRequest)
 	}
@@ -89,4 +105,23 @@ func GetHandler(e *Env, w http.ResponseWriter, r *http.Request, listName string,
 		return
 	}
 	fmt.Fprintf(w, "%d\n", attempts)
+}
+
+func BulkPutHandler(e *Env, w http.ResponseWriter, r *http.Request, listName string) {
+	bodyBytes, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		errStr := fmt.Sprintf("Error reading body: %v", err)
+		http.Error(w, errStr, http.StatusBadRequest)
+		return
+	}
+	// TODO: trim trailing newlines from bodyBytes first.
+	itemNames := strings.Split(string(bodyBytes[:]), "\n")
+
+	err = e.Store.BulkAdd(listName, itemNames)
+	if err != nil {
+		errStr := fmt.Sprintf("Error trying to add list item: %v", err)
+		http.Error(w, errStr, http.StatusInternalServerError)
+		return
+	}
+	fmt.Fprint(w, "ADDED")
 }
