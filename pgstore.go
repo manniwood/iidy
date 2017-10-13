@@ -119,3 +119,54 @@ func (p *PgStore) BulkAdd(listName string, itemIDs []string) error {
 	}
 	return nil
 }
+
+func (p *PgStore) BulkGet(listName string, startID string, count int) ([]ListItem, error) {
+	var sql string
+	args := make(pgx.QueryArgs, 0)
+	if startID == "" {
+		sql = `
+		  select item,
+				 attempts
+			from lists
+		   where list = $1
+		order by list,
+				 item
+		   limit $2`
+		args.Append(listName)
+		args.Append(count)
+	} else {
+		sql = `
+		  select item,
+				 attempts
+		    from lists
+		   where list = $1
+			 and item > $2
+		order by list,
+				 item
+		   limit $3`
+		args.Append(listName)
+		args.Append(startID)
+		args.Append(count)
+	}
+	rows, err := p.pool.Query(sql, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	// May as well grab as much mem as we need at the outset.
+	items := make([]ListItem, 0, count)
+	var item string
+	var attempts uint
+	for rows.Next() {
+		err = rows.Scan(&item, &attempts)
+		if err != nil {
+			return nil, err
+		}
+		items = append(items, ListItem{Item: item, Attempts: attempts})
+	}
+	if rows.Err() != nil {
+		return nil, err
+	}
+	return items, nil
+}

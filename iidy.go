@@ -8,14 +8,14 @@ type Store interface {
 }
 
 type ListItem struct {
-	ID       string
+	Item     string
 	Attempts uint
 }
 
 type BulkStore interface {
 	Store
 	BulkAdd(listName string, itemIDs []string) (err error)
-	//BulkGet(listName string, startID string, count int) (listItems []ListItem, ok bool, err error)
+	//BulkGet(listName string, startID string, count int) (listItems []ListItem, err error)
 	//BulkDel(listName string, itemIDs []string) (err error)
 	//BulkInc(listName string, itemIDs []string) (err error)
 }
