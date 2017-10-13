@@ -126,3 +126,37 @@ func ItemSlicesAreEqual(files []ListItem, items []ListItem) bool {
 	}
 	return true
 }
+
+func TestBulkDel(t *testing.T) {
+	s := getEmptyStore(t)
+	files := []string{"a", "b", "c", "d", "e", "f", "g"}
+	err := s.BulkAdd("Downloads", files)
+	if err != nil {
+		t.Errorf("Error bulk inserting: %w", err)
+	}
+	count, err := s.BulkInc("Downloads", []string{"a", "b", "c", "d", "e"})
+	if err != nil {
+		t.Errorf("Error bulk incrementing: %w", err)
+	}
+	if count != 5 {
+		t.Errorf("Bulk incremented wrong number of items. Expected 5, got %v", count)
+	}
+	for _, file := range []string{"a", "b", "c", "d", "e"} {
+		attempts, ok, _ := s.Get("Downloads", file)
+		if !ok {
+			t.Errorf("Did not properly get item %v from list.", file)
+		}
+		if attempts != 1 {
+			t.Errorf("Did not properly increment item %v.", file)
+		}
+	}
+	for _, file := range []string{"f", "g"} {
+		attempts, ok, _ := s.Get("Downloads", file)
+		if !ok {
+			t.Errorf("Did not properly get item %v from list.", file)
+		}
+		if attempts != 0 {
+			t.Errorf("Item %v is incorrectly incremented.", file)
+		}
+	}
+}

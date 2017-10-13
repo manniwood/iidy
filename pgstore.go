@@ -170,3 +170,75 @@ func (p *PgStore) BulkGet(listName string, startID string, count int) ([]ListIte
 	}
 	return items, nil
 }
+
+func (p *PgStore) BulkDel(listName string, itemIDs []string) (int64, error) {
+	if itemIDs == nil || len(itemIDs) == 0 {
+		return 0, nil
+	}
+	// The query we need to build looks like this:
+	// delete from lists
+	//       where list = $1
+	//         and item in (select unnest(array[$2, $3, ... $12]))"
+	var buffer bytes.Buffer
+	buffer.WriteString(`
+		delete from lists
+		      where list = $1
+		        and item in (select unnest(array[`)
+	argNum := 1
+	args := make(pgx.QueryArgs, 0)
+	args.Append(listName)
+	lastIndex := len(itemIDs) - 1
+	for i, itemID := range itemIDs {
+		buffer.WriteString("$")
+		argNum++
+		buffer.WriteString(strconv.Itoa(argNum))
+		if i < lastIndex {
+			buffer.WriteString(", ")
+		}
+		args.Append(itemID)
+	}
+	buffer.WriteString("]))")
+	sql := buffer.String()
+	commandTag, err := p.pool.Exec(sql, args...)
+	if err != nil {
+		return 0, err
+	}
+	return commandTag.RowsAffected(), nil
+}
+
+func (p *PgStore) BulkInc(listName string, itemIDs []string) (int64, error) {
+	if itemIDs == nil || len(itemIDs) == 0 {
+		return 0, nil
+	}
+	// The query we need to build looks like this:
+	// update lists
+	//    set attempts = attempts + 1
+	//       where list = $1
+	//         and item in (select unnest(array[$2, $3, ... $12]))"
+	var buffer bytes.Buffer
+	buffer.WriteString(`
+		update lists
+		   set attempts = attempts + 1
+		      where list = $1
+		        and item in (select unnest(array[`)
+	argNum := 1
+	args := make(pgx.QueryArgs, 0)
+	args.Append(listName)
+	lastIndex := len(itemIDs) - 1
+	for i, itemID := range itemIDs {
+		buffer.WriteString("$")
+		argNum++
+		buffer.WriteString(strconv.Itoa(argNum))
+		if i < lastIndex {
+			buffer.WriteString(", ")
+		}
+		args.Append(itemID)
+	}
+	buffer.WriteString("]))")
+	sql := buffer.String()
+	commandTag, err := p.pool.Exec(sql, args...)
+	if err != nil {
+		return 0, err
+	}
+	return commandTag.RowsAffected(), nil
+}
