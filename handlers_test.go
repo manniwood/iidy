@@ -295,5 +295,58 @@ e`)
 			t.Errorf("Item %v is incorrectly incremented.", file)
 		}
 	}
+}
 
+func TestBulkDelHandler(t *testing.T) {
+	s := getEmptyStore(t)
+	files := []string{"a", "b", "c", "d", "e", "f", "g"}
+	err := s.BulkAdd("downloads", files)
+	if err != nil {
+		t.Errorf("Error bulk inserting: %w", err)
+	}
+	body := []byte(`a
+b
+c
+d
+e`)
+	req, err := http.NewRequest("BULKDELETE", "/lists/downloads", bytes.NewBuffer(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+	env := &Env{Store: s}
+	handler := http.Handler(Handler{Env: env, H: ListHandler})
+
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("Wrong status code: got %v want %v", status, http.StatusOK)
+	}
+
+	expected := "DELETED 5\n"
+	if rr.Body.String() != expected {
+		t.Errorf("Unexpected body: got %v want %v", rr.Body.String(), expected)
+	}
+	for _, file := range []string{"a", "b", "c", "d", "e"} {
+		_, ok, err := s.Get("downloads", file)
+		if err != nil {
+			t.Errorf("Error getting item: %v", err)
+		}
+		if ok {
+			t.Errorf("Found item %v that should have been deleted from list.", file)
+		}
+	}
+	for _, file := range []string{"f", "g"} {
+		attempts, ok, err := s.Get("downloads", file)
+		if err != nil {
+			t.Errorf("Error getting item: %v", err)
+		}
+		if !ok {
+			t.Errorf("Item %v should not have been deleted from list.", file)
+		}
+		if attempts != 0 {
+			t.Errorf("Item %v is incorrectly incremented.", file)
+		}
+	}
 }

@@ -38,7 +38,7 @@ func ListHandler(e *Env, w http.ResponseWriter, r *http.Request) {
 		}
 		listName = urlParts[2]
 		itemName = urlParts[3]
-	case "BULKPUT", "BULKGET", "BULKINCREMENT":
+	case "BULKPUT", "BULKGET", "BULKINCREMENT", "BULKDELETE":
 		if len(urlParts) != 3 {
 			http.Error(w, "Bad request; needs to look like /lists/<listname>", http.StatusBadRequest)
 			return
@@ -63,6 +63,8 @@ func ListHandler(e *Env, w http.ResponseWriter, r *http.Request) {
 		BulkGetHandler(e, w, r, listName)
 	case "BULKINCREMENT":
 		BulkIncHandler(e, w, r, listName)
+	case "BULKDELETE":
+		BulkDelHandler(e, w, r, listName)
 	default:
 		http.Error(w, "Unknown method.", http.StatusBadRequest)
 	}
@@ -124,7 +126,7 @@ func BulkPutHandler(e *Env, w http.ResponseWriter, r *http.Request, listName str
 
 	err = e.Store.BulkAdd(listName, itemNames)
 	if err != nil {
-		errStr := fmt.Sprintf("Error trying to add list item: %v", err)
+		errStr := fmt.Sprintf("Error trying to add list items: %v", err)
 		http.Error(w, errStr, http.StatusInternalServerError)
 		return
 	}
@@ -162,9 +164,28 @@ func BulkIncHandler(e *Env, w http.ResponseWriter, r *http.Request, listName str
 
 	count, err := e.Store.BulkInc(listName, itemNames)
 	if err != nil {
-		errStr := fmt.Sprintf("Error trying to add list item: %v", err)
+		errStr := fmt.Sprintf("Error trying to increment list items: %v", err)
 		http.Error(w, errStr, http.StatusInternalServerError)
 		return
 	}
 	fmt.Fprintf(w, "INCREMENTED %d\n", count)
+}
+
+func BulkDelHandler(e *Env, w http.ResponseWriter, r *http.Request, listName string) {
+	bodyBytes, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		errStr := fmt.Sprintf("Error reading body: %v", err)
+		http.Error(w, errStr, http.StatusBadRequest)
+		return
+	}
+	// TODO: trim trailing newlines from bodyBytes first.
+	itemNames := strings.Split(string(bodyBytes[:]), "\n")
+
+	count, err := e.Store.BulkDel(listName, itemNames)
+	if err != nil {
+		errStr := fmt.Sprintf("Error trying to delete list items: %v", err)
+		http.Error(w, errStr, http.StatusInternalServerError)
+		return
+	}
+	fmt.Fprintf(w, "DELETED %d\n", count)
 }
