@@ -1,6 +1,9 @@
 package iidy
 
 import (
+	"bytes"
+	"strconv"
+
 	"github.com/jackc/pgx"
 	"github.com/pkg/errors"
 )
@@ -10,7 +13,7 @@ type PgStore struct {
 	pool *pgx.ConnPool
 }
 
-func NewPgStore() (Store, error) {
+func NewPgStore() (*PgStore, error) {
 	// TODO: make this configurable
 	conf := pgx.ConnConfig{Host: "localhost", Database: "iidy", User: "iidy"}
 	pconf := pgx.ConnPoolConfig{ConnConfig: conf, MaxConnections: 5}
@@ -20,6 +23,14 @@ func NewPgStore() (Store, error) {
 	}
 	p := PgStore{pool: pool}
 	return &p, nil
+}
+
+func (p *PgStore) Nuke() error {
+	_, err := p.pool.Exec(`truncate table lists`)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (p *PgStore) Add(listName string, itemID string) error {
@@ -63,6 +74,46 @@ func (p *PgStore) Inc(listName string, itemID string) error {
 		  set attempts = attempts + 1
 		where list = $1
 		  and item = $2`, listName, itemID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (p *PgStore) BulkAdd(listName string, itemIDs []string) error {
+	if itemIDs == nil || len(itemIDs) == 0 {
+		return nil
+	}
+	// The query we need to build looks like this:
+	// insert into lists
+	// (list, item)
+	// values
+	// ($1, $2),
+	// ($3, $4),
+	// ...
+	// ($11, $12) <-- no trailing comma
+	var buffer bytes.Buffer
+	buffer.WriteString("insert into lists (list, item) values \n")
+	argNum := 0
+	args := make(pgx.QueryArgs, 0)
+	lastIndex := len(itemIDs) - 1
+	for i, itemID := range itemIDs {
+		buffer.WriteString("($")
+		argNum++
+		buffer.WriteString(strconv.Itoa(argNum))
+		buffer.WriteString(", ")
+		buffer.WriteString("$")
+		args.Append(listName)
+		argNum++
+		buffer.WriteString(strconv.Itoa(argNum))
+		buffer.WriteString(")")
+		if i < lastIndex {
+			buffer.WriteString(",\n")
+		}
+		args.Append(itemID)
+	}
+	sql := buffer.String()
+	_, err := p.pool.Exec(sql, args...)
 	if err != nil {
 		return err
 	}

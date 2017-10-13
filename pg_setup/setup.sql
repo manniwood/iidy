@@ -5,6 +5,7 @@ create database iidy with owner iidy;
 \connect iidy
 set role iidy;
 create table lists (
-	list     text constraint list_pk primary key not null,
-	item     text not null,
-	attempts integer not null default 0);
+	list     text    not null,
+	item     text    not null,
+	attempts integer not null default 0,
+	constraint list_pk primary key (list, item));
