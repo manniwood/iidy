@@ -125,6 +125,10 @@ func getScrubbedLines(bodyBytes []byte) []string {
 }
 
 func BulkPutHandler(e *Env, w http.ResponseWriter, r *http.Request, list string) {
+	if r.Body == nil {
+		fmt.Fprintf(w, "ADDED 0\n")
+		return
+	}
 	bodyBytes, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		errStr := fmt.Sprintf("Error reading body: %v", err)
@@ -159,6 +163,10 @@ func BulkGetHandler(e *Env, w http.ResponseWriter, r *http.Request, list string)
 		return
 	}
 	listEntries, err := e.Store.BulkGet(list, startID, count)
+	if len(listEntries) == 0 {
+		// Nothing found, so we are done!
+		return
+	}
 	// Although the client can parse out the last item from the body,
 	// as a convenience, also provide the last item in a header.
 	w.Header().Set("X-IIDY-Last-Item", listEntries[len(listEntries)-1].Item)
@@ -168,6 +176,10 @@ func BulkGetHandler(e *Env, w http.ResponseWriter, r *http.Request, list string)
 }
 
 func BulkIncHandler(e *Env, w http.ResponseWriter, r *http.Request, list string) {
+	if r.Body == nil {
+		fmt.Fprintf(w, "INCREMENTED 0\n")
+		return
+	}
 	bodyBytes, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		errStr := fmt.Sprintf("Error reading body: %v", err)
@@ -186,6 +198,10 @@ func BulkIncHandler(e *Env, w http.ResponseWriter, r *http.Request, list string)
 }
 
 func BulkDelHandler(e *Env, w http.ResponseWriter, r *http.Request, list string) {
+	if r.Body == nil {
+		fmt.Fprintf(w, "ADDED 0\n")
+		return
+	}
 	bodyBytes, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		errStr := fmt.Sprintf("Error reading body: %v", err)

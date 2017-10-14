@@ -250,6 +250,23 @@ robots.txt`)
 	if !ListEntrySlicesAreEqual(expected, listEntries) {
 		t.Errorf("Expected %v; got %v", expected, listEntries)
 	}
+
+	// What if we bulk put nothing?
+	req, err = http.NewRequest("BULKPUT", "/lists/downloads", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rr = httptest.NewRecorder()
+	env = &Env{Store: getEmptyStore(t)}
+	handler = http.Handler(Handler{Env: env, H: ListHandler})
+	handler.ServeHTTP(rr, req)
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
+	expectedBody = "ADDED 0\n"
+	if rr.Body.String() != expectedBody {
+		t.Errorf("Unexpected body: got %v want %v", rr.Body.String(), expectedBody)
+	}
 }
 
 func TestBulkGetHandler(t *testing.T) {
@@ -291,6 +308,28 @@ func TestBulkGetHandler(t *testing.T) {
 			t.Errorf("handler returned unexpected body: got '%v' want '%v'", rr.Body.String(), test.want)
 		}
 	}
+
+	// What if we bulk get from a list that doesn't exist?
+	req, err := http.NewRequest("BULKGET", "/lists/i_do_not_exist", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("X-IIDY-Count", "2")
+	rr := httptest.NewRecorder()
+	env := &Env{Store: s}
+	handler := http.Handler(Handler{Env: env, H: ListHandler})
+	handler.ServeHTTP(rr, req)
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
+	/* lastItem := rr.Result().Header.Get("X-IIDY-Last-Item")
+
+	if lastItem != test.lastItem {
+		t.Errorf("handler returned wrong last item: got %v want %v", lastItem, test.lastItem)
+	}
+	if rr.Body.String() != test.want {
+		t.Errorf("handler returned unexpected body: got '%v' want '%v'", rr.Body.String(), test.want)
+	} */
 }
 
 func TestBulkIncHandler(t *testing.T) {
@@ -346,6 +385,23 @@ e`)
 			t.Errorf("Item %v is incorrectly incremented.", file)
 		}
 	}
+
+	// What if we bulk increment nothing?
+	req, err = http.NewRequest("BULKINCREMENT", "/lists/downloads", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rr = httptest.NewRecorder()
+	env = &Env{Store: s}
+	handler = http.Handler(Handler{Env: env, H: ListHandler})
+	handler.ServeHTTP(rr, req)
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
+	expected = "INCREMENTED 0\n"
+	if rr.Body.String() != expected {
+		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
+	}
 }
 
 func TestBulkDelHandler(t *testing.T) {
@@ -397,5 +453,22 @@ e`)
 		if attempts != 0 {
 			t.Errorf("Item %v is incorrectly incremented.", file)
 		}
+	}
+
+	// What if we bulk delete nothing?
+	req, err = http.NewRequest("BULKDELETE", "/lists/downloads", bytes.NewBuffer(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	rr = httptest.NewRecorder()
+	env = &Env{Store: s}
+	handler = http.Handler(Handler{Env: env, H: ListHandler})
+	handler.ServeHTTP(rr, req)
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("Wrong status code: got %v want %v", status, http.StatusOK)
+	}
+	expected = "DELETED 0\n"
+	if rr.Body.String() != expected {
+		t.Errorf("Unexpected body: got %v want %v", rr.Body.String(), expected)
 	}
 }
