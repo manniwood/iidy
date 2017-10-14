@@ -208,11 +208,12 @@ func TestBulkGetHandler(t *testing.T) {
 	var tests = []struct {
 		afterItem string
 		want      string
+		lastItem  string
 	}{
-		{"", "a 0\nb 0\n"},
-		{"b", "c 0\nd 0\n"},
-		{"d", "e 0\nf 0\n"},
-		{"f", "g 0\n"},
+		{"", "a 0\nb 0\n", "b"},
+		{"b", "c 0\nd 0\n", "d"},
+		{"d", "e 0\nf 0\n", "f"},
+		{"f", "g 0\n", "g"},
 	}
 	for _, test := range tests {
 		req, err := http.NewRequest("BULKGET", "/lists/downloads", nil)
@@ -232,6 +233,10 @@ func TestBulkGetHandler(t *testing.T) {
 
 		if status := rr.Code; status != http.StatusOK {
 			t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+		}
+		lastItem := rr.Result().Header.Get("X-IIDY-Last-Item")
+		if lastItem != test.lastItem {
+			t.Errorf("handler returned wrong last item: got %v want %v", lastItem, test.lastItem)
 		}
 		if rr.Body.String() != test.want {
 			t.Errorf("handler returned unexpected body: got '%v' want '%v'", rr.Body.String(), test.want)
