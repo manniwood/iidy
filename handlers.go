@@ -29,7 +29,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func ListHandler(e *Env, w http.ResponseWriter, r *http.Request) {
 	urlParts := strings.Split(r.URL.Path, "/")
 	var listName string
-	var itemName string
+	var item string
 	switch r.Method {
 	case "PUT", "GET", "INCREMENT", "DELETE":
 		if len(urlParts) != 4 {
@@ -37,7 +37,7 @@ func ListHandler(e *Env, w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		listName = urlParts[2]
-		itemName = urlParts[3]
+		item = urlParts[3]
 	case "BULKPUT", "BULKGET", "BULKINCREMENT", "BULKDELETE":
 		if len(urlParts) != 3 {
 			http.Error(w, "Bad request; needs to look like /lists/<listname>", http.StatusBadRequest)
@@ -50,13 +50,13 @@ func ListHandler(e *Env, w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case "PUT":
-		PutHandler(e, w, r, listName, itemName)
+		PutHandler(e, w, r, listName, item)
 	case "GET":
-		GetHandler(e, w, r, listName, itemName)
+		GetHandler(e, w, r, listName, item)
 	case "INCREMENT":
-		IncHandler(e, w, r, listName, itemName)
+		IncHandler(e, w, r, listName, item)
 	case "DELETE":
-		DelHandler(e, w, r, listName, itemName)
+		DelHandler(e, w, r, listName, item)
 	case "BULKPUT":
 		BulkPutHandler(e, w, r, listName)
 	case "BULKGET":
@@ -70,38 +70,38 @@ func ListHandler(e *Env, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func PutHandler(e *Env, w http.ResponseWriter, r *http.Request, listName string, itemName string) {
-	err := e.Store.Add(listName, itemName)
+func PutHandler(e *Env, w http.ResponseWriter, r *http.Request, listName string, item string) {
+	err := e.Store.Add(listName, item)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to add list item: %v", err)
 		http.Error(w, errStr, http.StatusInternalServerError)
 		return
 	}
-	fmt.Fprintf(w, "ADDED: %s, %s\n", listName, itemName)
+	fmt.Fprintf(w, "ADDED: %s, %s\n", listName, item)
 }
 
-func IncHandler(e *Env, w http.ResponseWriter, r *http.Request, listName string, itemName string) {
-	err := e.Store.Inc(listName, itemName)
+func IncHandler(e *Env, w http.ResponseWriter, r *http.Request, listName string, item string) {
+	err := e.Store.Inc(listName, item)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to increment list item: %v", err)
 		http.Error(w, errStr, http.StatusInternalServerError)
 		return
 	}
-	fmt.Fprintf(w, "INCREMENTED: %s, %s\n", listName, itemName)
+	fmt.Fprintf(w, "INCREMENTED: %s, %s\n", listName, item)
 }
 
-func DelHandler(e *Env, w http.ResponseWriter, r *http.Request, listName string, itemName string) {
-	err := e.Store.Del(listName, itemName)
+func DelHandler(e *Env, w http.ResponseWriter, r *http.Request, listName string, item string) {
+	err := e.Store.Del(listName, item)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to delete list item: %v", err)
 		http.Error(w, errStr, http.StatusInternalServerError)
 		return
 	}
-	fmt.Fprintf(w, "DELETED: %s, %s\n", listName, itemName)
+	fmt.Fprintf(w, "DELETED: %s, %s\n", listName, item)
 }
 
-func GetHandler(e *Env, w http.ResponseWriter, r *http.Request, listName string, itemName string) {
-	attempts, ok, err := e.Store.Get(listName, itemName)
+func GetHandler(e *Env, w http.ResponseWriter, r *http.Request, listName string, item string) {
+	attempts, ok, err := e.Store.Get(listName, item)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to get list item: %v", err)
 		http.Error(w, errStr, http.StatusInternalServerError)
@@ -122,9 +122,9 @@ func BulkPutHandler(e *Env, w http.ResponseWriter, r *http.Request, listName str
 		return
 	}
 	// TODO: trim trailing newlines from bodyBytes first.
-	itemNames := strings.Split(string(bodyBytes[:]), "\n")
+	items := strings.Split(string(bodyBytes[:]), "\n")
 
-	err = e.Store.BulkAdd(listName, itemNames)
+	err = e.Store.BulkAdd(listName, items)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to add list items: %v", err)
 		http.Error(w, errStr, http.StatusInternalServerError)
@@ -160,9 +160,9 @@ func BulkIncHandler(e *Env, w http.ResponseWriter, r *http.Request, listName str
 		return
 	}
 	// TODO: trim trailing newlines from bodyBytes first.
-	itemNames := strings.Split(string(bodyBytes[:]), "\n")
+	items := strings.Split(string(bodyBytes[:]), "\n")
 
-	count, err := e.Store.BulkInc(listName, itemNames)
+	count, err := e.Store.BulkInc(listName, items)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to increment list items: %v", err)
 		http.Error(w, errStr, http.StatusInternalServerError)
@@ -179,9 +179,9 @@ func BulkDelHandler(e *Env, w http.ResponseWriter, r *http.Request, listName str
 		return
 	}
 	// TODO: trim trailing newlines from bodyBytes first.
-	itemNames := strings.Split(string(bodyBytes[:]), "\n")
+	items := strings.Split(string(bodyBytes[:]), "\n")
 
-	count, err := e.Store.BulkDel(listName, itemNames)
+	count, err := e.Store.BulkDel(listName, items)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to delete list items: %v", err)
 		http.Error(w, errStr, http.StatusInternalServerError)
