@@ -84,12 +84,12 @@ func TestBulkAdd(t *testing.T) {
 func TestBulkGet(t *testing.T) {
 	var tests = []struct {
 		startKey string
-		want     []ListItem
+		want     []ListEntry
 	}{
-		{"", []ListItem{{"a", 0}, {"b", 0}}},
-		{"b", []ListItem{{"c", 0}, {"d", 0}}},
-		{"d", []ListItem{{"e", 0}, {"f", 0}}},
-		{"f", []ListItem{{"g", 0}}},
+		{"", []ListEntry{{"a", 0}, {"b", 0}}},
+		{"b", []ListEntry{{"c", 0}, {"d", 0}}},
+		{"d", []ListEntry{{"e", 0}, {"f", 0}}},
+		{"f", []ListEntry{{"g", 0}}},
 	}
 	s := getEmptyStore(t)
 	files := []string{"a", "b", "c", "d", "e", "f", "g"}
@@ -109,7 +109,7 @@ func TestBulkGet(t *testing.T) {
 	}
 }
 
-func ItemSlicesAreEqual(files []ListItem, items []ListItem) bool {
+func ItemSlicesAreEqual(files []ListEntry, items []ListEntry) bool {
 	if files == nil && items == nil {
 		return true
 	}

@@ -168,7 +168,7 @@ func TestBulkPutHandler(t *testing.T) {
 vim.tar.gz
 robots.txt`)
 	// remember, these come back in alphabetical order
-	expected := []ListItem{
+	expected := []ListEntry{
 		{"linux.tar.gz", 0},
 		{"robots.txt", 0},
 		{"vim.tar.gz", 0},

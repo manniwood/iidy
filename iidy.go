@@ -1,6 +1,6 @@
 package iidy
 
-type ListItem struct {
+type ListEntry struct {
 	Item     string
 	Attempts uint
 }
