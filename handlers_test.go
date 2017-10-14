@@ -206,8 +206,8 @@ func TestBulkGetHandler(t *testing.T) {
 	}
 
 	var tests = []struct {
-		startKey string
-		want     string
+		startItem string
+		want      string
 	}{
 		{"", "a 0\nb 0\n"},
 		{"b", "c 0\nd 0\n"},
@@ -219,8 +219,8 @@ func TestBulkGetHandler(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if test.startKey != "" {
-			req.Header.Set("X-IIDY-Start-Key", test.startKey)
+		if test.startItem != "" {
+			req.Header.Set("X-IIDY-Start-Item", test.startItem)
 		}
 		req.Header.Set("X-IIDY-Count", "2")
 

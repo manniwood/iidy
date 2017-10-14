@@ -83,8 +83,8 @@ func TestBulkAdd(t *testing.T) {
 
 func TestBulkGet(t *testing.T) {
 	var tests = []struct {
-		startKey string
-		want     []ListEntry
+		startItem string
+		want      []ListEntry
 	}{
 		{"", []ListEntry{{"a", 0}, {"b", 0}}},
 		{"b", []ListEntry{{"c", 0}, {"d", 0}}},
@@ -99,7 +99,7 @@ func TestBulkGet(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		items, err := s.BulkGet("downloads", test.startKey, 2)
+		items, err := s.BulkGet("downloads", test.startItem, 2)
 		if err != nil {
 			t.Errorf("Error bulk fetching: %v", err)
 		}
