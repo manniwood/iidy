@@ -213,6 +213,10 @@ robots.txt`)
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
+	expectedBody := "ADDED 3\n"
+	if rr.Body.String() != expectedBody {
+		t.Errorf("Unexpected body: got %v want %v", rr.Body.String(), expectedBody)
+	}
 
 	// What if we bulk get what we just bulk put?
 	listEntries, err := env.Store.BulkGet("downloads", "", 3)
@@ -369,14 +373,5 @@ e`)
 		if attempts != 0 {
 			t.Errorf("Item %v is incorrectly incremented.", file)
 		}
-	}
-}
-
-func bulkAddTestItems(t *testing.T, s *PgStore) {
-	// Bulk add a bunch of test items.
-	files := []string{"a", "b", "c", "d", "e", "f", "g"}
-	err := s.BulkAdd("downloads", files)
-	if err != nil {
-		t.Errorf("Error bulk inserting: %v", err)
 	}
 }

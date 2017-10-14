@@ -77,7 +77,15 @@ func TestDel(t *testing.T) {
 	if ok {
 		t.Error("Did not properly delete item to list.")
 	}
+
+	// What about deleting an item that isn't there?
+	err = s.Del("downloads", "I do not exist")
+	if err != nil {
+		t.Errorf("Error trying to delete item from list: %v", err)
+	}
 }
+
+// what about deleting something that's not there?
 
 func TestInc(t *testing.T) {
 	s := getEmptyStore(t)
@@ -102,14 +110,19 @@ func TestInc(t *testing.T) {
 	}
 }
 
+// what about incrementing something that's not there?
+
 func TestBulkAdd(t *testing.T) {
 	s := getEmptyStore(t)
 	files := []string{"kernel.tar.gz", "vim.tar.gz", "robots.txt"}
 
 	// Does bulk add work?
-	err := s.BulkAdd("downloads", files)
+	count, err := s.BulkAdd("downloads", files)
 	if err != nil {
 		t.Errorf("Error bulk inserting: %v", err)
+	}
+	if count != 3 {
+		t.Errorf("Bulk incremented wrong number of items. Expected 5, got %v", count)
 	}
 
 	// If we get the list items, do they exist?
@@ -127,6 +140,20 @@ func TestBulkAdd(t *testing.T) {
 	}
 }
 
+// These items are expected to be in the db at the start
+// of the next few bulk tests.
+func bulkAddTestItems(t *testing.T, s *PgStore) {
+	// Bulk add a bunch of test items.
+	files := []string{"a", "b", "c", "d", "e", "f", "g"}
+	count, err := s.BulkAdd("downloads", files)
+	if err != nil {
+		t.Errorf("Error bulk inserting: %v", err)
+	}
+	if count != 7 {
+		t.Errorf("Bulk incremented wrong number of items. Expected 5, got %v", count)
+	}
+}
+
 func TestBulkGet(t *testing.T) {
 	var tests = []struct {
 		afterItem string
@@ -138,11 +165,7 @@ func TestBulkGet(t *testing.T) {
 		{"f", []ListEntry{{"g", 0}}},
 	}
 	s := getEmptyStore(t)
-	files := []string{"a", "b", "c", "d", "e", "f", "g"}
-	err := s.BulkAdd("downloads", files)
-	if err != nil {
-		t.Errorf("Error bulk inserting: %v", err)
-	}
+	bulkAddTestItems(t, s)
 
 	// If we bulk get 2 items at a time, does everything work?
 	for _, test := range tests {
@@ -158,11 +181,7 @@ func TestBulkGet(t *testing.T) {
 
 func TestBulkInc(t *testing.T) {
 	s := getEmptyStore(t)
-	files := []string{"a", "b", "c", "d", "e", "f", "g"}
-	err := s.BulkAdd("downloads", files)
-	if err != nil {
-		t.Errorf("Error bulk inserting: %v", err)
-	}
+	bulkAddTestItems(t, s)
 
 	// Does bulk increment work?
 	count, err := s.BulkInc("downloads", []string{"a", "b", "c", "d", "e"})
@@ -204,11 +223,7 @@ func TestBulkInc(t *testing.T) {
 
 func TestBulkDel(t *testing.T) {
 	s := getEmptyStore(t)
-	files := []string{"a", "b", "c", "d", "e", "f", "g"}
-	err := s.BulkAdd("downloads", files)
-	if err != nil {
-		t.Errorf("Error bulk inserting: %v", err)
-	}
+	bulkAddTestItems(t, s)
 
 	// Does bulk delete work?
 	count, err := s.BulkDel("downloads", []string{"a", "b", "c", "d", "e"})

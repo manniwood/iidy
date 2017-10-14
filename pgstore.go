@@ -85,9 +85,9 @@ func (p *PgStore) Inc(list string, item string) error {
 	return nil
 }
 
-func (p *PgStore) BulkAdd(list string, items []string) error {
+func (p *PgStore) BulkAdd(list string, items []string) (int64, error) {
 	if items == nil || len(items) == 0 {
-		return nil
+		return 0, nil
 	}
 	// The query we need to build looks like this:
 	// insert into lists
@@ -118,11 +118,11 @@ func (p *PgStore) BulkAdd(list string, items []string) error {
 		args.Append(item)
 	}
 	sql := buffer.String()
-	_, err := p.pool.Exec(sql, args...)
+	commandTag, err := p.pool.Exec(sql, args...)
 	if err != nil {
-		return err
+		return 0, err
 	}
-	return nil
+	return commandTag.RowsAffected(), nil
 }
 
 func (p *PgStore) BulkGet(list string, startID string, count int) ([]ListEntry, error) {

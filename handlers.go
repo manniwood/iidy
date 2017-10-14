@@ -127,13 +127,13 @@ func BulkPutHandler(e *Env, w http.ResponseWriter, r *http.Request, list string)
 	// TODO: trim trailing newlines from bodyBytes first.
 	items := strings.Split(string(bodyBytes[:]), "\n")
 
-	err = e.Store.BulkAdd(list, items)
+	count, err := e.Store.BulkAdd(list, items)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to add list items: %v", err)
 		http.Error(w, errStr, http.StatusInternalServerError)
 		return
 	}
-	fmt.Fprint(w, "ADDED")
+	fmt.Fprintf(w, "ADDED %d\n", count)
 }
 
 func BulkGetHandler(e *Env, w http.ResponseWriter, r *http.Request, list string) {
