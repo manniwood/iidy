@@ -117,6 +117,13 @@ func GetHandler(e *Env, w http.ResponseWriter, r *http.Request, list string, ite
 	fmt.Fprintf(w, "%d\n", attempts)
 }
 
+func getScrubbedLines(bodyBytes []byte) []string {
+	bodyString := string(bodyBytes[:])
+	// be nice and trim leading and trailing space from body first.
+	bodyString = strings.TrimSpace(bodyString)
+	return strings.Split(bodyString, "\n")
+}
+
 func BulkPutHandler(e *Env, w http.ResponseWriter, r *http.Request, list string) {
 	bodyBytes, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -124,8 +131,7 @@ func BulkPutHandler(e *Env, w http.ResponseWriter, r *http.Request, list string)
 		http.Error(w, errStr, http.StatusBadRequest)
 		return
 	}
-	// TODO: trim trailing newlines from bodyBytes first.
-	items := strings.Split(string(bodyBytes[:]), "\n")
+	items := getScrubbedLines(bodyBytes)
 
 	count, err := e.Store.BulkAdd(list, items)
 	if err != nil {
@@ -168,8 +174,7 @@ func BulkIncHandler(e *Env, w http.ResponseWriter, r *http.Request, list string)
 		http.Error(w, errStr, http.StatusBadRequest)
 		return
 	}
-	// TODO: trim trailing newlines from bodyBytes first.
-	items := strings.Split(string(bodyBytes[:]), "\n")
+	items := getScrubbedLines(bodyBytes)
 
 	count, err := e.Store.BulkInc(list, items)
 	if err != nil {
@@ -187,8 +192,7 @@ func BulkDelHandler(e *Env, w http.ResponseWriter, r *http.Request, list string)
 		http.Error(w, errStr, http.StatusBadRequest)
 		return
 	}
-	// TODO: trim trailing newlines from bodyBytes first.
-	items := strings.Split(string(bodyBytes[:]), "\n")
+	items := getScrubbedLines(bodyBytes)
 
 	count, err := e.Store.BulkDel(list, items)
 	if err != nil {
