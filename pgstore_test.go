@@ -13,7 +13,7 @@ func getEmptyStore(t *testing.T) *PgStore {
 
 // Our tests add this test item over and over,
 // so here it is.
-func addTestItem(t *testing.T, s *PgStore) {
+func addSingleStartingItem(t *testing.T, s *PgStore) {
 	err := s.Add("downloads", "kernel.tar.gz")
 	if err != nil {
 		t.Errorf("Error adding item: %v", err)
@@ -22,7 +22,7 @@ func addTestItem(t *testing.T, s *PgStore) {
 
 func TestAddAndGet(t *testing.T) {
 	s := getEmptyStore(t)
-	addTestItem(t, s)
+	addSingleStartingItem(t, s)
 
 	// Did we really add the item?
 	attempts, ok, err := s.Get("downloads", "kernel.tar.gz")
@@ -61,7 +61,7 @@ func TestUnhappyGetScenarios(t *testing.T) {
 
 func TestDel(t *testing.T) {
 	s := getEmptyStore(t)
-	addTestItem(t, s)
+	addSingleStartingItem(t, s)
 
 	// Can we successfully delete?
 	err := s.Del("downloads", "kernel.tar.gz")
@@ -81,7 +81,7 @@ func TestDel(t *testing.T) {
 
 func TestInc(t *testing.T) {
 	s := getEmptyStore(t)
-	addTestItem(t, s)
+	addSingleStartingItem(t, s)
 
 	// Does incrementing an item's attempts work?
 	err := s.Inc("downloads", "kernel.tar.gz")

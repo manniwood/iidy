@@ -12,22 +12,19 @@ func TestPutHandler(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	rr := httptest.NewRecorder()
 	env := &Env{Store: getEmptyStore(t)}
 	handler := http.Handler(Handler{Env: env, H: ListHandler})
-
 	handler.ServeHTTP(rr, req)
-
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
-
 	expected := "ADDED: downloads, linux.tar.gz\n"
 	if rr.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}
 
+	// Did we really add the item?
 	_, ok, err := env.Store.Get("downloads", "linux.tar.gz")
 	if err != nil {
 		t.Errorf("Error getting item: %v", err)
@@ -42,17 +39,13 @@ func TestNonExistentMethod(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	rr := httptest.NewRecorder()
 	env := &Env{Store: getEmptyStore(t)}
 	handler := http.Handler(Handler{Env: env, H: ListHandler})
-
 	handler.ServeHTTP(rr, req)
-
 	if status := rr.Code; status != http.StatusBadRequest {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
-
 	expected := "Unknown method.\n"
 	if rr.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
@@ -60,70 +53,91 @@ func TestNonExistentMethod(t *testing.T) {
 }
 
 func TestGetHandler(t *testing.T) {
-
 	env := &Env{Store: getEmptyStore(t)}
-	putSingleStartingValue(t, env)
+	putSingleStartingItem(t, env)
 
-	// now, get the value
+	// Can we get an existing value?
 	req, err := http.NewRequest("GET", "/lists/downloads/linux.tar.gz", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	rr := httptest.NewRecorder()
 	handler := http.Handler(Handler{Env: env, H: ListHandler})
-
 	handler.ServeHTTP(rr, req)
-
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
-
 	expected := "0\n"
 	if rr.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}
 }
 
-func TestIncHandler(t *testing.T) {
-
+func TestUnhappyHandlerGetScenarios(t *testing.T) {
 	env := &Env{Store: getEmptyStore(t)}
-	putSingleStartingValue(t, env)
+	putSingleStartingItem(t, env)
 
-	// now, increment the value
+	// What about getting an item that doesn't exist?
+	req, err := http.NewRequest("GET", "/lists/downloads/i_do_not_exist.tar.gz", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rr := httptest.NewRecorder()
+	handler := http.Handler(Handler{Env: env, H: ListHandler})
+	handler.ServeHTTP(rr, req)
+	if status := rr.Code; status != http.StatusNotFound {
+		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
+	expected := "Not found.\n"
+	if rr.Body.String() != expected {
+		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
+	}
+
+	// What about getting from a list that doesn't exist?
+	req, err = http.NewRequest("GET", "/i_do_not_exist/downloads/kernel.tar.gz", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rr = httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+	if status := rr.Code; status != http.StatusNotFound {
+		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
+	if rr.Body.String() != expected {
+		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
+	}
+}
+
+func TestIncHandler(t *testing.T) {
+	env := &Env{Store: getEmptyStore(t)}
+	putSingleStartingItem(t, env)
+
+	// Can we increment the number of attempts for a list item?
 	req, err := http.NewRequest("INCREMENT", "/lists/downloads/linux.tar.gz", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	rr := httptest.NewRecorder()
 	handler := http.Handler(Handler{Env: env, H: ListHandler})
-
 	handler.ServeHTTP(rr, req)
-
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
-
 	expected := "INCREMENTED: downloads, linux.tar.gz\n"
 	if rr.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}
 
-	// Now the new value should be fetchable with GET
+	// Is the incremented attempt fetchable with GET?
 	req, err = http.NewRequest("GET", "/lists/downloads/linux.tar.gz", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	rr = httptest.NewRecorder()
-
 	handler.ServeHTTP(rr, req)
-
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
-
 	expected = "1\n"
 	if rr.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
@@ -131,60 +145,48 @@ func TestIncHandler(t *testing.T) {
 }
 
 func TestDelHandler(t *testing.T) {
-
 	env := &Env{Store: getEmptyStore(t)}
-	putSingleStartingValue(t, env)
+	putSingleStartingItem(t, env)
 
-	// Now the value should be deletable with DELETE
+	// Can we delete our starting value?
 	req, err := http.NewRequest("DELETE", "/lists/downloads/linux.tar.gz", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	rr := httptest.NewRecorder()
 	handler := http.Handler(Handler{Env: env, H: ListHandler})
-
 	handler.ServeHTTP(rr, req)
-
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
-
 	expected := "DELETED: downloads, linux.tar.gz\n"
 	if rr.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}
 
-	// Now the deleted value should not be fetchable with GET
+	// Is the deleted value really no longer fetchable?
 	req, err = http.NewRequest("GET", "/lists/downloads/linux.tar.gz", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	rr = httptest.NewRecorder()
-
 	handler.ServeHTTP(rr, req)
-
 	if status := rr.Code; status != http.StatusNotFound {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
-
-	// NOTE to test maintainers: a trailing newline is added for us by http.Error
 	expected = "Not found.\n"
 	if rr.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got '%v' want '%v'", rr.Body.String(), expected)
 	}
 }
 
-func putSingleStartingValue(t *testing.T, env *Env) {
+func putSingleStartingItem(t *testing.T, env *Env) {
 	req, err := http.NewRequest("PUT", "/lists/downloads/linux.tar.gz", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	rr := httptest.NewRecorder()
 	handler := http.Handler(Handler{Env: env, H: ListHandler})
-
 	handler.ServeHTTP(rr, req)
 }
 
@@ -198,21 +200,21 @@ robots.txt`)
 		{"robots.txt", 0},
 		{"vim.tar.gz", 0},
 	}
+
+	// Does bulk put work without errors?
 	req, err := http.NewRequest("BULKPUT", "/lists/downloads", bytes.NewBuffer(body))
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	rr := httptest.NewRecorder()
 	env := &Env{Store: getEmptyStore(t)}
 	handler := http.Handler(Handler{Env: env, H: ListHandler})
-
 	handler.ServeHTTP(rr, req)
-
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
 
+	// What if we bulk get what we just bulk put?
 	listEntries, err := env.Store.BulkGet("downloads", "", 3)
 	if err != nil {
 		t.Errorf("Error fetching items: %v", err)
@@ -224,12 +226,9 @@ robots.txt`)
 
 func TestBulkGetHandler(t *testing.T) {
 	s := getEmptyStore(t)
-	files := []string{"a", "b", "c", "d", "e", "f", "g"}
-	err := s.BulkAdd("downloads", files)
-	if err != nil {
-		t.Errorf("Error bulk inserting: %v", err)
-	}
+	bulkAddTestItems(t, s)
 
+	// Can we bulk get the test items in batches of 2?
 	var tests = []struct {
 		afterItem string
 		want      string
@@ -249,13 +248,10 @@ func TestBulkGetHandler(t *testing.T) {
 			req.Header.Set("X-IIDY-After-Item", test.afterItem)
 		}
 		req.Header.Set("X-IIDY-Count", "2")
-
 		rr := httptest.NewRecorder()
 		env := &Env{Store: s}
 		handler := http.Handler(Handler{Env: env, H: ListHandler})
-
 		handler.ServeHTTP(rr, req)
-
 		if status := rr.Code; status != http.StatusOK {
 			t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
 		}
@@ -271,11 +267,9 @@ func TestBulkGetHandler(t *testing.T) {
 
 func TestBulkIncHandler(t *testing.T) {
 	s := getEmptyStore(t)
-	files := []string{"a", "b", "c", "d", "e", "f", "g"}
-	err := s.BulkAdd("downloads", files)
-	if err != nil {
-		t.Errorf("Error bulk inserting: %v", err)
-	}
+	bulkAddTestItems(t, s)
+
+	// Can we bulk increment some of the items' attempts?
 	body := []byte(`a
 b
 c
@@ -285,22 +279,19 @@ e`)
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	rr := httptest.NewRecorder()
 	env := &Env{Store: s}
 	handler := http.Handler(Handler{Env: env, H: ListHandler})
-
 	handler.ServeHTTP(rr, req)
-
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
-
 	expected := "INCREMENTED 5\n"
 	if rr.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}
 
+	// If we look for incremented items, are they incremented?
 	for _, file := range []string{"a", "b", "c", "d", "e"} {
 		attempts, ok, err := s.Get("downloads", file)
 		if err != nil {
@@ -313,6 +304,8 @@ e`)
 			t.Errorf("Did not properly increment item %v.", file)
 		}
 	}
+
+	// What about non-incremented items? Were they left alone?
 	for _, file := range []string{"f", "g"} {
 		attempts, ok, err := s.Get("downloads", file)
 		if err != nil {
@@ -329,11 +322,9 @@ e`)
 
 func TestBulkDelHandler(t *testing.T) {
 	s := getEmptyStore(t)
-	files := []string{"a", "b", "c", "d", "e", "f", "g"}
-	err := s.BulkAdd("downloads", files)
-	if err != nil {
-		t.Errorf("Error bulk inserting: %v", err)
-	}
+	bulkAddTestItems(t, s)
+
+	// Can we bulk delete some of the items?
 	body := []byte(`a
 b
 c
@@ -343,21 +334,19 @@ e`)
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	rr := httptest.NewRecorder()
 	env := &Env{Store: s}
 	handler := http.Handler(Handler{Env: env, H: ListHandler})
-
 	handler.ServeHTTP(rr, req)
-
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("Wrong status code: got %v want %v", status, http.StatusOK)
 	}
-
 	expected := "DELETED 5\n"
 	if rr.Body.String() != expected {
 		t.Errorf("Unexpected body: got %v want %v", rr.Body.String(), expected)
 	}
+
+	// If we look for the deleted items, are they correctly missing?
 	for _, file := range []string{"a", "b", "c", "d", "e"} {
 		_, ok, err := s.Get("downloads", file)
 		if err != nil {
@@ -367,6 +356,8 @@ e`)
 			t.Errorf("Found item %v that should have been deleted from list.", file)
 		}
 	}
+
+	// Were other items left alone?
 	for _, file := range []string{"f", "g"} {
 		attempts, ok, err := s.Get("downloads", file)
 		if err != nil {
@@ -378,5 +369,14 @@ e`)
 		if attempts != 0 {
 			t.Errorf("Item %v is incorrectly incremented.", file)
 		}
+	}
+}
+
+func bulkAddTestItems(t *testing.T, s *PgStore) {
+	// Bulk add a bunch of test items.
+	files := []string{"a", "b", "c", "d", "e", "f", "g"}
+	err := s.BulkAdd("downloads", files)
+	if err != nil {
+		t.Errorf("Error bulk inserting: %v", err)
 	}
 }
