@@ -37,6 +37,28 @@ func TestPutHandler(t *testing.T) {
 	}
 }
 
+func TestNonExistentMethod(t *testing.T) {
+	req, err := http.NewRequest("BLARG", "/lists/downloads/linux.tar.gz", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+	env := &Env{Store: getEmptyStore(t)}
+	handler := http.Handler(Handler{Env: env, H: ListHandler})
+
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusBadRequest {
+		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
+
+	expected := "Unknown method.\n"
+	if rr.Body.String() != expected {
+		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
+	}
+}
+
 func TestGetHandler(t *testing.T) {
 
 	env := &Env{Store: getEmptyStore(t)}

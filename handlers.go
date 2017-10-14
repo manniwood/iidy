@@ -48,6 +48,7 @@ func ListHandler(e *Env, w http.ResponseWriter, r *http.Request) {
 		list = urlParts[2]
 	default:
 		http.Error(w, "Unknown method.", http.StatusBadRequest)
+		return
 	}
 
 	switch r.Method {
