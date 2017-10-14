@@ -134,7 +134,7 @@ func BulkPutHandler(e *Env, w http.ResponseWriter, r *http.Request, list string)
 }
 
 func BulkGetHandler(e *Env, w http.ResponseWriter, r *http.Request, list string) {
-	startID := r.Header.Get("X-IIDY-Start-Item")
+	startID := r.Header.Get("X-IIDY-After-Item")
 	countStr := r.Header.Get("X-IIDY-Count")
 	if countStr == "" {
 		http.Error(w, "Header not found: X-IIDY-Count", http.StatusBadRequest)
