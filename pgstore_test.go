@@ -173,6 +173,15 @@ func TestBulkAdd(t *testing.T) {
 			t.Error("Did not properly add item to list.")
 		}
 	}
+
+	// What if we bulk put nothing?
+	count, err = s.BulkAdd("downloads", []string{})
+	if err != nil {
+		t.Errorf("Error bulk inserting: %v", err)
+	}
+	if count != 0 {
+		t.Errorf("Bulk added wrong number of items. Expected 0, got %v", count)
+	}
 }
 
 // These items are expected to be in the db at the start
@@ -185,7 +194,7 @@ func bulkAddTestItems(t *testing.T, s *PgStore) {
 		t.Errorf("Error bulk inserting: %v", err)
 	}
 	if count != 7 {
-		t.Errorf("Bulk incremented wrong number of items. Expected 5, got %v", count)
+		t.Errorf("Bulk added wrong number of items. Expected 5, got %v", count)
 	}
 }
 
