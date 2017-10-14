@@ -212,6 +212,15 @@ func TestBulkGet(t *testing.T) {
 			t.Errorf("Expected %v; got %v", test.want, items)
 		}
 	}
+
+	// What if we bulk get nothing?
+	items, err := s.BulkGet("downloads", "", 0)
+	if err != nil {
+		t.Errorf("Error bulk deleting: %v", err)
+	}
+	if len(items) != 0 {
+		t.Errorf("Bulk get of nothing yeilded results!")
+	}
 }
 
 func TestBulkInc(t *testing.T) {
@@ -254,6 +263,15 @@ func TestBulkInc(t *testing.T) {
 			t.Errorf("Item %v is incorrectly incremented.", file)
 		}
 	}
+
+	// What if we bulk increment nothing?
+	count, err = s.BulkInc("downloads", []string{})
+	if err != nil {
+		t.Errorf("Error bulk deleting: %v", err)
+	}
+	if count != 0 {
+		t.Errorf("Bulk incremented wrong number of items. Expected 0, got %v", count)
+	}
 }
 
 func TestBulkDel(t *testing.T) {
@@ -292,6 +310,15 @@ func TestBulkDel(t *testing.T) {
 		if attempts != 0 {
 			t.Errorf("Item %v is incorrectly incremented.", file)
 		}
+	}
+
+	// What if we bulk delete nothing?
+	count, err = s.BulkDel("downloads", []string{})
+	if err != nil {
+		t.Errorf("Error bulk deleting: %v", err)
+	}
+	if count != 0 {
+		t.Errorf("Bulk deleted wrong number of items. Expected 0, got %v", count)
 	}
 }
 
