@@ -39,7 +39,8 @@ func (p *PgStore) Nuke() error {
 }
 
 func (p *PgStore) Add(list string, item string) error {
-	_, err := p.pool.Exec(`insert into lists
+	_, err := p.pool.Exec(`
+		insert into lists
 		(list, item)
 		values ($1, $2)`, list, item)
 	if err != nil {
@@ -65,9 +66,10 @@ func (p *PgStore) Get(list string, item string) (int, bool, error) {
 }
 
 func (p *PgStore) Del(list string, item string) error {
-	_, err := p.pool.Exec(`delete from lists
-		where list = $1
-		  and item = $2`, list, item)
+	_, err := p.pool.Exec(`
+		delete from lists
+		 where list = $1
+		   and item = $2`, list, item)
 	if err != nil {
 		return err
 	}
@@ -75,10 +77,11 @@ func (p *PgStore) Del(list string, item string) error {
 }
 
 func (p *PgStore) Inc(list string, item string) error {
-	_, err := p.pool.Exec(`update lists
-		  set attempts = attempts + 1
-		where list = $1
-		  and item = $2`, list, item)
+	_, err := p.pool.Exec(`
+		update lists
+		   set attempts = attempts + 1
+		 where list = $1
+		   and item = $2`, list, item)
 	if err != nil {
 		return err
 	}
@@ -125,6 +128,8 @@ func (p *PgStore) BulkAdd(list string, items []string) (int64, error) {
 	return commandTag.RowsAffected(), nil
 }
 
+// The general pattern being followed here is explained very well at
+// http://use-the-index-luke.com/sql/partial-results/fetch-next-page
 func (p *PgStore) BulkGet(list string, startID string, count int) ([]ListEntry, error) {
 	if count == 0 {
 		return []ListEntry{}, nil
@@ -228,8 +233,8 @@ func (p *PgStore) BulkInc(list string, items []string) (int64, error) {
 	buffer.WriteString(`
 		update lists
 		   set attempts = attempts + 1
-		      where list = $1
-		        and item in (select unnest(array[`)
+	     where list = $1
+	       and item in (select unnest(array[`)
 	argNum := 1
 	args := make(pgx.QueryArgs, 0)
 	args.Append(list)

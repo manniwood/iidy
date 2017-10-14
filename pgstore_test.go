@@ -85,7 +85,7 @@ func TestDel(t *testing.T) {
 	}
 }
 
-// what about deleting something that's not there?
+// XXX what about deleting something that's not there?
 
 func TestInc(t *testing.T) {
 	s := getEmptyStore(t)
@@ -110,7 +110,7 @@ func TestInc(t *testing.T) {
 	}
 }
 
-// what about incrementing something that's not there?
+// XXX what about incrementing something that's not there?
 
 func TestBulkAdd(t *testing.T) {
 	s := getEmptyStore(t)
