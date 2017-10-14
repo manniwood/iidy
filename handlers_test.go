@@ -142,6 +142,23 @@ func TestIncHandler(t *testing.T) {
 	if rr.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}
+
+	// How about incrementing something that's not there?
+	req, err = http.NewRequest("INCREMENT", "/lists/i_do_not_exist/kernel.tar.gz", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rr = httptest.NewRecorder()
+	handler = http.Handler(Handler{Env: env, H: ListHandler})
+	handler.ServeHTTP(rr, req)
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
+	expected = "INCREMENTED 0\n"
+	if rr.Body.String() != expected {
+		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
+	}
+
 }
 
 func TestDelHandler(t *testing.T) {
@@ -178,6 +195,23 @@ func TestDelHandler(t *testing.T) {
 	if rr.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got '%v' want '%v'", rr.Body.String(), expected)
 	}
+
+	// How about deleting something that's not there?
+	req, err = http.NewRequest("DELETE", "/lists/downloads/kernel.tar.gz", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rr = httptest.NewRecorder()
+	handler = http.Handler(Handler{Env: env, H: ListHandler})
+	handler.ServeHTTP(rr, req)
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
+	expected = "DELETED 0\n"
+	if rr.Body.String() != expected {
+		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
+	}
+
 }
 
 func TestBulkPutHandler(t *testing.T) {
