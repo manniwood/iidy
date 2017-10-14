@@ -191,12 +191,12 @@ robots.txt`)
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
 
-	listItems, err := env.Store.BulkGet("downloads", "", 3)
+	listEntries, err := env.Store.BulkGet("downloads", "", 3)
 	if err != nil {
 		t.Errorf("Error fetching items: %v", err)
 	}
-	if !ItemSlicesAreEqual(expected, listItems) {
-		t.Errorf("Expected %v; got %v", expected, listItems)
+	if !ListEntrySlicesAreEqual(expected, listEntries) {
+		t.Errorf("Expected %v; got %v", expected, listEntries)
 	}
 }
 
@@ -205,7 +205,7 @@ func TestBulkGetHandler(t *testing.T) {
 	files := []string{"a", "b", "c", "d", "e", "f", "g"}
 	err := s.BulkAdd("downloads", files)
 	if err != nil {
-		t.Errorf("Error bulk inserting: %w", err)
+		t.Errorf("Error bulk inserting: %v", err)
 	}
 
 	var tests = []struct {
@@ -252,7 +252,7 @@ func TestBulkIncHandler(t *testing.T) {
 	files := []string{"a", "b", "c", "d", "e", "f", "g"}
 	err := s.BulkAdd("downloads", files)
 	if err != nil {
-		t.Errorf("Error bulk inserting: %w", err)
+		t.Errorf("Error bulk inserting: %v", err)
 	}
 	body := []byte(`a
 b
@@ -310,7 +310,7 @@ func TestBulkDelHandler(t *testing.T) {
 	files := []string{"a", "b", "c", "d", "e", "f", "g"}
 	err := s.BulkAdd("downloads", files)
 	if err != nil {
-		t.Errorf("Error bulk inserting: %w", err)
+		t.Errorf("Error bulk inserting: %v", err)
 	}
 	body := []byte(`a
 b

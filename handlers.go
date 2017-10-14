@@ -151,11 +151,11 @@ func BulkGetHandler(e *Env, w http.ResponseWriter, r *http.Request, list string)
 	if count == 0 {
 		return
 	}
-	listItems, err := e.Store.BulkGet(list, startID, count)
+	listEntries, err := e.Store.BulkGet(list, startID, count)
 	// Although the client can parse out the last item from the body,
 	// as a convenience, also provide the last item in a header.
-	w.Header().Set("X-IIDY-Last-Item", listItems[len(listItems)-1].Item)
-	for _, listItem := range listItems {
+	w.Header().Set("X-IIDY-Last-Item", listEntries[len(listEntries)-1].Item)
+	for _, listItem := range listEntries {
 		fmt.Fprintf(w, "%s %d\n", listItem.Item, listItem.Attempts)
 	}
 }
