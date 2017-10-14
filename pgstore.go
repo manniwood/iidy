@@ -8,6 +8,11 @@ import (
 	"github.com/pkg/errors"
 )
 
+type ListEntry struct {
+	Item     string
+	Attempts uint
+}
+
 type PgStore struct {
 	// need a pg connection pool here
 	pool *pgx.ConnPool
