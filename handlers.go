@@ -27,6 +27,8 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func ListHandler(e *Env, w http.ResponseWriter, r *http.Request) {
+	// We always deal in plain text, so may as well be explicit about it.
+	w.Header().Set("Content-Type", "text/plain")
 	urlParts := strings.Split(r.URL.Path, "/")
 	var list string
 	var item string
