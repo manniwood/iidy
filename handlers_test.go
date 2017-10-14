@@ -8,7 +8,7 @@ import (
 )
 
 func TestPutHandler(t *testing.T) {
-	req, err := http.NewRequest("PUT", "/lists/downloads/linux.tar.gz", nil)
+	req, err := http.NewRequest("PUT", "/lists/downloads/kernel.tar.gz", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -19,13 +19,13 @@ func TestPutHandler(t *testing.T) {
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
-	expected := "ADDED: downloads, linux.tar.gz\n"
+	expected := "ADDED: downloads, kernel.tar.gz\n"
 	if rr.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}
 
 	// Did we really add the item?
-	_, ok, err := env.Store.Get("downloads", "linux.tar.gz")
+	_, ok, err := env.Store.Get("downloads", "kernel.tar.gz")
 	if err != nil {
 		t.Errorf("Error getting item: %v", err)
 	}
@@ -35,7 +35,7 @@ func TestPutHandler(t *testing.T) {
 }
 
 func TestNonExistentMethod(t *testing.T) {
-	req, err := http.NewRequest("BLARG", "/lists/downloads/linux.tar.gz", nil)
+	req, err := http.NewRequest("BLARG", "/lists/downloads/kernel.tar.gz", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -54,10 +54,10 @@ func TestNonExistentMethod(t *testing.T) {
 
 func TestGetHandler(t *testing.T) {
 	env := &Env{Store: getEmptyStore(t)}
-	putSingleStartingItem(t, env)
+	addSingleStartingItem(t, env.Store)
 
 	// Can we get an existing value?
-	req, err := http.NewRequest("GET", "/lists/downloads/linux.tar.gz", nil)
+	req, err := http.NewRequest("GET", "/lists/downloads/kernel.tar.gz", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -75,7 +75,7 @@ func TestGetHandler(t *testing.T) {
 
 func TestUnhappyHandlerGetScenarios(t *testing.T) {
 	env := &Env{Store: getEmptyStore(t)}
-	putSingleStartingItem(t, env)
+	addSingleStartingItem(t, env.Store)
 
 	// What about getting an item that doesn't exist?
 	req, err := http.NewRequest("GET", "/lists/downloads/i_do_not_exist.tar.gz", nil)
@@ -94,7 +94,7 @@ func TestUnhappyHandlerGetScenarios(t *testing.T) {
 	}
 
 	// What about getting from a list that doesn't exist?
-	req, err = http.NewRequest("GET", "/i_do_not_exist/downloads/kernel.tar.gz", nil)
+	req, err = http.NewRequest("GET", "/lists/i_do_not_exist/kernel.tar.gz", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -110,10 +110,10 @@ func TestUnhappyHandlerGetScenarios(t *testing.T) {
 
 func TestIncHandler(t *testing.T) {
 	env := &Env{Store: getEmptyStore(t)}
-	putSingleStartingItem(t, env)
+	addSingleStartingItem(t, env.Store)
 
 	// Can we increment the number of attempts for a list item?
-	req, err := http.NewRequest("INCREMENT", "/lists/downloads/linux.tar.gz", nil)
+	req, err := http.NewRequest("INCREMENT", "/lists/downloads/kernel.tar.gz", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -123,13 +123,13 @@ func TestIncHandler(t *testing.T) {
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
-	expected := "INCREMENTED: downloads, linux.tar.gz\n"
+	expected := "INCREMENTED: downloads, kernel.tar.gz\n"
 	if rr.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}
 
 	// Is the incremented attempt fetchable with GET?
-	req, err = http.NewRequest("GET", "/lists/downloads/linux.tar.gz", nil)
+	req, err = http.NewRequest("GET", "/lists/downloads/kernel.tar.gz", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -146,10 +146,10 @@ func TestIncHandler(t *testing.T) {
 
 func TestDelHandler(t *testing.T) {
 	env := &Env{Store: getEmptyStore(t)}
-	putSingleStartingItem(t, env)
+	addSingleStartingItem(t, env.Store)
 
 	// Can we delete our starting value?
-	req, err := http.NewRequest("DELETE", "/lists/downloads/linux.tar.gz", nil)
+	req, err := http.NewRequest("DELETE", "/lists/downloads/kernel.tar.gz", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -159,13 +159,13 @@ func TestDelHandler(t *testing.T) {
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
-	expected := "DELETED: downloads, linux.tar.gz\n"
+	expected := "DELETED: downloads, kernel.tar.gz\n"
 	if rr.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}
 
 	// Is the deleted value really no longer fetchable?
-	req, err = http.NewRequest("GET", "/lists/downloads/linux.tar.gz", nil)
+	req, err = http.NewRequest("GET", "/lists/downloads/kernel.tar.gz", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -180,23 +180,13 @@ func TestDelHandler(t *testing.T) {
 	}
 }
 
-func putSingleStartingItem(t *testing.T, env *Env) {
-	req, err := http.NewRequest("PUT", "/lists/downloads/linux.tar.gz", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	rr := httptest.NewRecorder()
-	handler := http.Handler(Handler{Env: env, H: ListHandler})
-	handler.ServeHTTP(rr, req)
-}
-
 func TestBulkPutHandler(t *testing.T) {
-	body := []byte(`linux.tar.gz
+	body := []byte(`kernel.tar.gz
 vim.tar.gz
 robots.txt`)
 	// remember, these come back in alphabetical order
 	expected := []ListEntry{
-		{"linux.tar.gz", 0},
+		{"kernel.tar.gz", 0},
 		{"robots.txt", 0},
 		{"vim.tar.gz", 0},
 	}
