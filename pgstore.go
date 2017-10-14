@@ -38,23 +38,23 @@ func (p *PgStore) Nuke() error {
 	return nil
 }
 
-func (p *PgStore) Add(list string, itemID string) error {
+func (p *PgStore) Add(list string, item string) error {
 	_, err := p.pool.Exec(`insert into lists
 		(list, item)
-		values ($1, $2)`, list, itemID)
+		values ($1, $2)`, list, item)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (p *PgStore) Get(list string, itemID string) (uint, bool, error) {
+func (p *PgStore) Get(list string, item string) (uint, bool, error) {
 	var attempts uint
 	err := p.pool.QueryRow(`
 		select attempts
 		  from lists
 		 where list = $1
-		   and item = $2`, list, itemID).Scan(&attempts)
+		   and item = $2`, list, item).Scan(&attempts)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return 0, false, nil
@@ -64,29 +64,29 @@ func (p *PgStore) Get(list string, itemID string) (uint, bool, error) {
 	return attempts, true, nil
 }
 
-func (p *PgStore) Del(list string, itemID string) error {
+func (p *PgStore) Del(list string, item string) error {
 	_, err := p.pool.Exec(`delete from lists
 		where list = $1
-		  and item = $2`, list, itemID)
+		  and item = $2`, list, item)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (p *PgStore) Inc(list string, itemID string) error {
+func (p *PgStore) Inc(list string, item string) error {
 	_, err := p.pool.Exec(`update lists
 		  set attempts = attempts + 1
 		where list = $1
-		  and item = $2`, list, itemID)
+		  and item = $2`, list, item)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (p *PgStore) BulkAdd(list string, itemIDs []string) error {
-	if itemIDs == nil || len(itemIDs) == 0 {
+func (p *PgStore) BulkAdd(list string, items []string) error {
+	if items == nil || len(items) == 0 {
 		return nil
 	}
 	// The query we need to build looks like this:
@@ -101,8 +101,8 @@ func (p *PgStore) BulkAdd(list string, itemIDs []string) error {
 	buffer.WriteString("insert into lists (list, item) values \n")
 	argNum := 0
 	args := make(pgx.QueryArgs, 0)
-	lastIndex := len(itemIDs) - 1
-	for i, itemID := range itemIDs {
+	lastIndex := len(items) - 1
+	for i, item := range items {
 		buffer.WriteString("($")
 		argNum++
 		buffer.WriteString(strconv.Itoa(argNum))
@@ -115,7 +115,7 @@ func (p *PgStore) BulkAdd(list string, itemIDs []string) error {
 		if i < lastIndex {
 			buffer.WriteString(",\n")
 		}
-		args.Append(itemID)
+		args.Append(item)
 	}
 	sql := buffer.String()
 	_, err := p.pool.Exec(sql, args...)
@@ -176,8 +176,8 @@ func (p *PgStore) BulkGet(list string, startID string, count int) ([]ListEntry, 
 	return items, nil
 }
 
-func (p *PgStore) BulkDel(list string, itemIDs []string) (int64, error) {
-	if itemIDs == nil || len(itemIDs) == 0 {
+func (p *PgStore) BulkDel(list string, items []string) (int64, error) {
+	if items == nil || len(items) == 0 {
 		return 0, nil
 	}
 	// The query we need to build looks like this:
@@ -192,15 +192,15 @@ func (p *PgStore) BulkDel(list string, itemIDs []string) (int64, error) {
 	argNum := 1
 	args := make(pgx.QueryArgs, 0)
 	args.Append(list)
-	lastIndex := len(itemIDs) - 1
-	for i, itemID := range itemIDs {
+	lastIndex := len(items) - 1
+	for i, item := range items {
 		buffer.WriteString("$")
 		argNum++
 		buffer.WriteString(strconv.Itoa(argNum))
 		if i < lastIndex {
 			buffer.WriteString(", ")
 		}
-		args.Append(itemID)
+		args.Append(item)
 	}
 	buffer.WriteString("]))")
 	sql := buffer.String()
@@ -211,8 +211,8 @@ func (p *PgStore) BulkDel(list string, itemIDs []string) (int64, error) {
 	return commandTag.RowsAffected(), nil
 }
 
-func (p *PgStore) BulkInc(list string, itemIDs []string) (int64, error) {
-	if itemIDs == nil || len(itemIDs) == 0 {
+func (p *PgStore) BulkInc(list string, items []string) (int64, error) {
+	if items == nil || len(items) == 0 {
 		return 0, nil
 	}
 	// The query we need to build looks like this:
@@ -229,15 +229,15 @@ func (p *PgStore) BulkInc(list string, itemIDs []string) (int64, error) {
 	argNum := 1
 	args := make(pgx.QueryArgs, 0)
 	args.Append(list)
-	lastIndex := len(itemIDs) - 1
-	for i, itemID := range itemIDs {
+	lastIndex := len(items) - 1
+	for i, item := range items {
 		buffer.WriteString("$")
 		argNum++
 		buffer.WriteString(strconv.Itoa(argNum))
 		if i < lastIndex {
 			buffer.WriteString(", ")
 		}
-		args.Append(itemID)
+		args.Append(item)
 	}
 	buffer.WriteString("]))")
 	sql := buffer.String()
