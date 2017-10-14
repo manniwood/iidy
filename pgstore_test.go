@@ -11,47 +11,37 @@ func getEmptyStore(t *testing.T) *PgStore {
 	return p
 }
 
-func TestAdd(t *testing.T) {
-	s := getEmptyStore(t)
+// Our tests add this test item over and over,
+// so here it is.
+func addTestItem(t *testing.T, s *PgStore) {
 	err := s.Add("downloads", "kernel.tar.gz")
 	if err != nil {
 		t.Errorf("Error adding item: %v", err)
 	}
+}
+
+func TestAddAndGet(t *testing.T) {
+	s := getEmptyStore(t)
+	addTestItem(t, s)
 
 	// Did we really add the item?
 	attempts, ok, err := s.Get("downloads", "kernel.tar.gz")
-	if attempts != 0 {
-		t.Error("attempts != 0")
-	}
 	if err != nil {
 		t.Errorf("Error getting item: %v", err)
+	}
+	if attempts != 0 {
+		t.Error("attempts != 0")
 	}
 	if !ok {
 		t.Error("Did not properly add item to list.")
 	}
 }
 
-func TestGet(t *testing.T) {
+func TestUnhappyGetScenarios(t *testing.T) {
 	s := getEmptyStore(t)
-	err := s.Add("downloads", "kernel.tar.gz")
-	if err != nil {
-		t.Errorf("Error adding item: %v", err)
-	}
-
-	// Can we get an added item?
-	attempts, ok, err := s.Get("downloads", "kernel.tar.gz")
-	if err != nil {
-		t.Errorf("Error getting item: %v", err)
-	}
-	if attempts != 0 {
-		t.Error("attempts != 0")
-	}
-	if !ok {
-		t.Error("Did not properly get item from list.")
-	}
 
 	// What about getting an item that doesn't exist?
-	_, ok, err = s.Get("downloads", "I do not exist")
+	_, ok, err := s.Get("downloads", "I do not exist")
 	if err != nil {
 		t.Errorf("Error getting item: %v", err)
 	}
@@ -71,13 +61,10 @@ func TestGet(t *testing.T) {
 
 func TestDel(t *testing.T) {
 	s := getEmptyStore(t)
-	err := s.Add("downloads", "kernel.tar.gz")
-	if err != nil {
-		t.Errorf("Error adding item: %v", err)
-	}
+	addTestItem(t, s)
 
 	// Can we successfully delete?
-	err = s.Del("downloads", "kernel.tar.gz")
+	err := s.Del("downloads", "kernel.tar.gz")
 	if err != nil {
 		t.Errorf("Error trying to delete item from list: %v", err)
 	}
@@ -94,13 +81,10 @@ func TestDel(t *testing.T) {
 
 func TestInc(t *testing.T) {
 	s := getEmptyStore(t)
-	err := s.Add("downloads", "kernel.tar.gz")
-	if err != nil {
-		t.Errorf("Error adding item: %v", err)
-	}
+	addTestItem(t, s)
 
 	// Does incrementing an item's attempts work?
-	err = s.Inc("downloads", "kernel.tar.gz")
+	err := s.Inc("downloads", "kernel.tar.gz")
 	if err != nil {
 		t.Errorf("Error trying to increment: %v", err)
 	}
