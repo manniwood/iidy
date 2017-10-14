@@ -10,7 +10,7 @@ import (
 
 type ListEntry struct {
 	Item     string
-	Attempts uint
+	Attempts int
 }
 
 type PgStore struct {
@@ -48,8 +48,8 @@ func (p *PgStore) Add(list string, item string) error {
 	return nil
 }
 
-func (p *PgStore) Get(list string, item string) (uint, bool, error) {
-	var attempts uint
+func (p *PgStore) Get(list string, item string) (int, bool, error) {
+	var attempts int
 	err := p.pool.QueryRow(`
 		select attempts
 		  from lists
@@ -166,7 +166,7 @@ func (p *PgStore) BulkGet(list string, startID string, count int) ([]ListEntry, 
 	// as we need for the entire list.
 	items := make([]ListEntry, 0, count)
 	var item string
-	var attempts uint
+	var attempts int
 	for rows.Next() {
 		err = rows.Scan(&item, &attempts)
 		if err != nil {
