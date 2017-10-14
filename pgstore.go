@@ -38,23 +38,23 @@ func (p *PgStore) Nuke() error {
 	return nil
 }
 
-func (p *PgStore) Add(listName string, itemID string) error {
+func (p *PgStore) Add(list string, itemID string) error {
 	_, err := p.pool.Exec(`insert into lists
 		(list, item)
-		values ($1, $2)`, listName, itemID)
+		values ($1, $2)`, list, itemID)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (p *PgStore) Get(listName string, itemID string) (uint, bool, error) {
+func (p *PgStore) Get(list string, itemID string) (uint, bool, error) {
 	var attempts uint
 	err := p.pool.QueryRow(`
 		select attempts
 		  from lists
 		 where list = $1
-		   and item = $2`, listName, itemID).Scan(&attempts)
+		   and item = $2`, list, itemID).Scan(&attempts)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return 0, false, nil
@@ -64,28 +64,28 @@ func (p *PgStore) Get(listName string, itemID string) (uint, bool, error) {
 	return attempts, true, nil
 }
 
-func (p *PgStore) Del(listName string, itemID string) error {
+func (p *PgStore) Del(list string, itemID string) error {
 	_, err := p.pool.Exec(`delete from lists
 		where list = $1
-		  and item = $2`, listName, itemID)
+		  and item = $2`, list, itemID)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (p *PgStore) Inc(listName string, itemID string) error {
+func (p *PgStore) Inc(list string, itemID string) error {
 	_, err := p.pool.Exec(`update lists
 		  set attempts = attempts + 1
 		where list = $1
-		  and item = $2`, listName, itemID)
+		  and item = $2`, list, itemID)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (p *PgStore) BulkAdd(listName string, itemIDs []string) error {
+func (p *PgStore) BulkAdd(list string, itemIDs []string) error {
 	if itemIDs == nil || len(itemIDs) == 0 {
 		return nil
 	}
@@ -108,7 +108,7 @@ func (p *PgStore) BulkAdd(listName string, itemIDs []string) error {
 		buffer.WriteString(strconv.Itoa(argNum))
 		buffer.WriteString(", ")
 		buffer.WriteString("$")
-		args.Append(listName)
+		args.Append(list)
 		argNum++
 		buffer.WriteString(strconv.Itoa(argNum))
 		buffer.WriteString(")")
@@ -125,7 +125,7 @@ func (p *PgStore) BulkAdd(listName string, itemIDs []string) error {
 	return nil
 }
 
-func (p *PgStore) BulkGet(listName string, startID string, count int) ([]ListEntry, error) {
+func (p *PgStore) BulkGet(list string, startID string, count int) ([]ListEntry, error) {
 	var sql string
 	args := make(pgx.QueryArgs, 0)
 	if startID == "" {
@@ -137,7 +137,7 @@ func (p *PgStore) BulkGet(listName string, startID string, count int) ([]ListEnt
 		order by list,
 				 item
 		   limit $2`
-		args.Append(listName)
+		args.Append(list)
 		args.Append(count)
 	} else {
 		sql = `
@@ -149,7 +149,7 @@ func (p *PgStore) BulkGet(listName string, startID string, count int) ([]ListEnt
 		order by list,
 				 item
 		   limit $3`
-		args.Append(listName)
+		args.Append(list)
 		args.Append(startID)
 		args.Append(count)
 	}
@@ -176,7 +176,7 @@ func (p *PgStore) BulkGet(listName string, startID string, count int) ([]ListEnt
 	return items, nil
 }
 
-func (p *PgStore) BulkDel(listName string, itemIDs []string) (int64, error) {
+func (p *PgStore) BulkDel(list string, itemIDs []string) (int64, error) {
 	if itemIDs == nil || len(itemIDs) == 0 {
 		return 0, nil
 	}
@@ -191,7 +191,7 @@ func (p *PgStore) BulkDel(listName string, itemIDs []string) (int64, error) {
 		        and item in (select unnest(array[`)
 	argNum := 1
 	args := make(pgx.QueryArgs, 0)
-	args.Append(listName)
+	args.Append(list)
 	lastIndex := len(itemIDs) - 1
 	for i, itemID := range itemIDs {
 		buffer.WriteString("$")
@@ -211,7 +211,7 @@ func (p *PgStore) BulkDel(listName string, itemIDs []string) (int64, error) {
 	return commandTag.RowsAffected(), nil
 }
 
-func (p *PgStore) BulkInc(listName string, itemIDs []string) (int64, error) {
+func (p *PgStore) BulkInc(list string, itemIDs []string) (int64, error) {
 	if itemIDs == nil || len(itemIDs) == 0 {
 		return 0, nil
 	}
@@ -228,7 +228,7 @@ func (p *PgStore) BulkInc(listName string, itemIDs []string) (int64, error) {
 		        and item in (select unnest(array[`)
 	argNum := 1
 	args := make(pgx.QueryArgs, 0)
-	args.Append(listName)
+	args.Append(list)
 	lastIndex := len(itemIDs) - 1
 	for i, itemID := range itemIDs {
 		buffer.WriteString("$")
