@@ -38,15 +38,15 @@ func (p *PgStore) Nuke() error {
 	return nil
 }
 
-func (p *PgStore) Add(list string, item string) error {
-	_, err := p.pool.Exec(`
+func (p *PgStore) Add(list string, item string) (int64, error) {
+	commandTag, err := p.pool.Exec(`
 		insert into lists
 		(list, item)
 		values ($1, $2)`, list, item)
 	if err != nil {
-		return err
+		return 0, err
 	}
-	return nil
+	return commandTag.RowsAffected(), nil
 }
 
 func (p *PgStore) Get(list string, item string) (int, bool, error) {
@@ -65,27 +65,27 @@ func (p *PgStore) Get(list string, item string) (int, bool, error) {
 	return attempts, true, nil
 }
 
-func (p *PgStore) Del(list string, item string) error {
-	_, err := p.pool.Exec(`
+func (p *PgStore) Del(list string, item string) (int64, error) {
+	commandTag, err := p.pool.Exec(`
 		delete from lists
 		 where list = $1
 		   and item = $2`, list, item)
 	if err != nil {
-		return err
+		return 0, err
 	}
-	return nil
+	return commandTag.RowsAffected(), nil
 }
 
-func (p *PgStore) Inc(list string, item string) error {
-	_, err := p.pool.Exec(`
+func (p *PgStore) Inc(list string, item string) (int64, error) {
+	commandTag, err := p.pool.Exec(`
 		update lists
 		   set attempts = attempts + 1
 		 where list = $1
 		   and item = $2`, list, item)
 	if err != nil {
-		return err
+		return 0, err
 	}
-	return nil
+	return commandTag.RowsAffected(), nil
 }
 
 func (p *PgStore) BulkAdd(list string, items []string) (int64, error) {

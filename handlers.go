@@ -74,33 +74,33 @@ func ListHandler(e *Env, w http.ResponseWriter, r *http.Request) {
 }
 
 func PutHandler(e *Env, w http.ResponseWriter, r *http.Request, list string, item string) {
-	err := e.Store.Add(list, item)
+	count, err := e.Store.Add(list, item)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to add list item: %v", err)
 		http.Error(w, errStr, http.StatusInternalServerError)
 		return
 	}
-	fmt.Fprintf(w, "ADDED: %s, %s\n", list, item)
+	fmt.Fprintf(w, "ADDED %d\n", count)
 }
 
 func IncHandler(e *Env, w http.ResponseWriter, r *http.Request, list string, item string) {
-	err := e.Store.Inc(list, item)
+	count, err := e.Store.Inc(list, item)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to increment list item: %v", err)
 		http.Error(w, errStr, http.StatusInternalServerError)
 		return
 	}
-	fmt.Fprintf(w, "INCREMENTED: %s, %s\n", list, item)
+	fmt.Fprintf(w, "INCREMENTED %d\n", count)
 }
 
 func DelHandler(e *Env, w http.ResponseWriter, r *http.Request, list string, item string) {
-	err := e.Store.Del(list, item)
+	count, err := e.Store.Del(list, item)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to delete list item: %v", err)
 		http.Error(w, errStr, http.StatusInternalServerError)
 		return
 	}
-	fmt.Fprintf(w, "DELETED: %s, %s\n", list, item)
+	fmt.Fprintf(w, "DELETED %d\n", count)
 }
 
 func GetHandler(e *Env, w http.ResponseWriter, r *http.Request, list string, item string) {

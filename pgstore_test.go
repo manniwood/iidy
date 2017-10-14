@@ -14,9 +14,12 @@ func getEmptyStore(t *testing.T) *PgStore {
 // Our tests add this test item over and over,
 // so here it is.
 func addSingleStartingItem(t *testing.T, s *PgStore) {
-	err := s.Add("downloads", "kernel.tar.gz")
+	count, err := s.Add("downloads", "kernel.tar.gz")
 	if err != nil {
 		t.Errorf("Error adding item: %v", err)
+	}
+	if count != 1 {
+		t.Error("Did not properly add item to list.")
 	}
 }
 
@@ -64,9 +67,12 @@ func TestDel(t *testing.T) {
 	addSingleStartingItem(t, s)
 
 	// Can we successfully delete?
-	err := s.Del("downloads", "kernel.tar.gz")
+	count, err := s.Del("downloads", "kernel.tar.gz")
 	if err != nil {
 		t.Errorf("Error trying to delete item from list: %v", err)
+	}
+	if count != 1 {
+		t.Error("Did not properly delete item from list.")
 	}
 
 	// Does getting the deleted value correctly return nothing?
@@ -79,22 +85,35 @@ func TestDel(t *testing.T) {
 	}
 
 	// What about deleting an item that isn't there?
-	err = s.Del("downloads", "I do not exist")
+	count, err = s.Del("downloads", "I do not exist")
 	if err != nil {
 		t.Errorf("Error trying to delete item from list: %v", err)
 	}
-}
+	if count != 0 {
+		t.Error("Did not properly report non-deletion of item.")
+	}
 
-// XXX what about deleting something that's not there?
+	// What about deleting an item from a list that isn't there?
+	count, err = s.Del("I do not exist", "kernel.tar.gz")
+	if err != nil {
+		t.Errorf("Error trying to delete item from non-existent list: %v", err)
+	}
+	if count != 0 {
+		t.Error("Did not properly report non-deletion of item from no-existent list.")
+	}
+}
 
 func TestInc(t *testing.T) {
 	s := getEmptyStore(t)
 	addSingleStartingItem(t, s)
 
 	// Does incrementing an item's attempts work?
-	err := s.Inc("downloads", "kernel.tar.gz")
+	count, err := s.Inc("downloads", "kernel.tar.gz")
 	if err != nil {
 		t.Errorf("Error trying to increment: %v", err)
+	}
+	if count != 1 {
+		t.Error("Did not properly increment.")
 	}
 
 	// When we get the incremented attempt, is is correct?
@@ -108,9 +127,25 @@ func TestInc(t *testing.T) {
 	if attempts != 1 {
 		t.Error("Did not properly increment item in list.")
 	}
-}
 
-// XXX what about incrementing something that's not there?
+	// What about incrementing an item that's not there?
+	count, err = s.Inc("downloads", "I do not exist")
+	if err != nil {
+		t.Errorf("Error trying to increment item from list: %v", err)
+	}
+	if count != 0 {
+		t.Error("Did not properly report non-increment of item.")
+	}
+
+	// What about incrementing an item from a list that's not there?
+	count, err = s.Inc("I do not exist", "kernel.tar.gz")
+	if err != nil {
+		t.Errorf("Error trying to increment item from list: %v", err)
+	}
+	if count != 0 {
+		t.Error("Did not properly report non-increment of item from non-existent list.")
+	}
+}
 
 func TestBulkAdd(t *testing.T) {
 	s := getEmptyStore(t)
