@@ -28,7 +28,10 @@ func TestPutHandler(t *testing.T) {
 		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}
 
-	_, ok, _ := env.Store.Get("downloads", "linux.tar.gz")
+	_, ok, err := env.Store.Get("downloads", "linux.tar.gz")
+	if err != nil {
+		t.Errorf("Error getting item: %v", err)
+	}
 	if !ok {
 		t.Error("Did not properly get item from list.")
 	}

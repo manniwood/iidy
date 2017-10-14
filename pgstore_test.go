@@ -13,8 +13,17 @@ func getEmptyStore(t *testing.T) *PgStore {
 
 func TestAdd(t *testing.T) {
 	s := getEmptyStore(t)
-	s.Add("downloads", "kernel.tar.gz")
-	_, ok, _ := s.Get("downloads", "kernel.tar.gz")
+	err := s.Add("downloads", "kernel.tar.gz")
+	if err != nil {
+		t.Errorf("Error adding item: %v", err)
+	}
+	attempts, ok, err := s.Get("downloads", "kernel.tar.gz")
+	if attempts != 0 {
+		t.Error("attempts != 0")
+	}
+	if err != nil {
+		t.Errorf("Error getting item: %v", err)
+	}
 	if !ok {
 		t.Error("Did not properly add item to list.")
 	}
@@ -22,16 +31,31 @@ func TestAdd(t *testing.T) {
 
 func TestGet(t *testing.T) {
 	s := getEmptyStore(t)
-	s.Add("downloads", "kernel.tar.gz")
-	_, ok, _ := s.Get("downloads", "kernel.tar.gz")
+	err := s.Add("downloads", "kernel.tar.gz")
+	if err != nil {
+		t.Errorf("Error adding item: %v", err)
+	}
+	attempts, ok, err := s.Get("downloads", "kernel.tar.gz")
+	if attempts != 0 {
+		t.Error("attempts != 0")
+	}
+	if err != nil {
+		t.Errorf("Error getting item: %v", err)
+	}
 	if !ok {
 		t.Error("Did not properly get item from list.")
 	}
-	_, ok, _ = s.Get("downloads", "I do not exist")
+	_, ok, err = s.Get("downloads", "I do not exist")
+	if err != nil {
+		t.Errorf("Error getting item: %v", err)
+	}
 	if ok {
 		t.Error("List claims to return value that was not added to list.")
 	}
-	_, ok, _ = s.Get("I do not exist", "kernel.tar.gz")
+	_, ok, err = s.Get("I do not exist", "kernel.tar.gz")
+	if err != nil {
+		t.Errorf("Error getting item: %v", err)
+	}
 	if ok {
 		t.Error("Non-existent list claims to return value.")
 	}
@@ -39,12 +63,18 @@ func TestGet(t *testing.T) {
 
 func TestDel(t *testing.T) {
 	s := getEmptyStore(t)
-	s.Add("downloads", "kernel.tar.gz")
-	err := s.Del("downloads", "kernel.tar.gz")
+	err := s.Add("downloads", "kernel.tar.gz")
+	if err != nil {
+		t.Errorf("Error adding item: %v", err)
+	}
+	err = s.Del("downloads", "kernel.tar.gz")
 	if err != nil {
 		t.Errorf("Error trying to delete item from list: %v", err)
 	}
-	_, ok, _ := s.Get("downloads", "kernel.tar.gz")
+	_, ok, err := s.Get("downloads", "kernel.tar.gz")
+	if err != nil {
+		t.Errorf("Error getting item: %v", err)
+	}
 	if ok {
 		t.Error("Did not properly delete item to list.")
 	}
@@ -52,9 +82,18 @@ func TestDel(t *testing.T) {
 
 func TestInc(t *testing.T) {
 	s := getEmptyStore(t)
-	s.Add("downloads", "kernel.tar.gz")
-	s.Inc("downloads", "kernel.tar.gz")
-	attempts, ok, _ := s.Get("downloads", "kernel.tar.gz")
+	err := s.Add("downloads", "kernel.tar.gz")
+	if err != nil {
+		t.Errorf("Error adding item: %v", err)
+	}
+	err = s.Inc("downloads", "kernel.tar.gz")
+	if err != nil {
+		t.Errorf("Error trying to increment: %v", err)
+	}
+	attempts, ok, err := s.Get("downloads", "kernel.tar.gz")
+	if err != nil {
+		t.Errorf("Error getting item: %v", err)
+	}
 	if !ok {
 		t.Error("Did not properly add item to list.")
 	}
@@ -71,7 +110,10 @@ func TestBulkAdd(t *testing.T) {
 		t.Errorf("Error bulk inserting: %w", err)
 	}
 	for _, file := range files {
-		attempts, ok, _ := s.Get("downloads", file)
+		attempts, ok, err := s.Get("downloads", file)
+		if err != nil {
+			t.Errorf("Error getting item: %v", err)
+		}
 		if attempts != 0 {
 			t.Errorf("Attempts for freshly-created %v is not 0", file)
 		}
