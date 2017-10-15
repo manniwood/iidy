@@ -13,19 +13,32 @@ import (
 // to the Store is inspired by
 // https://elithrar.github.io/article/http-handler-error-handling-revisited/
 
+// Env is a global struct that's only meant to be instantiated
+// once, like a singleton, and passed in to ListHandler so that
+// our handlers have access to the data store.
 type Env struct {
 	Store *PgStore
 }
 
+// Handler is a struct that takes a pointer to and Env struct
+// and then hands that in to a function that satisfies the
+// http.Handler interface.
 type Handler struct {
 	Env *Env
 	H   func(e *Env, w http.ResponseWriter, r *http.Request)
 }
 
+// ServeHTTP satisfies the http.Handler interface, but
+// actually calls our Handler struct's H function, which
+// has access to our Env "singleton" which holds a pointer
+// to our data store.
 func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.H(h.Env, w, r)
 }
 
+// ListHandler is expected to handle all traffic to "/lists/".
+// It parses out the list and item names from the URL and then
+// delegates to more specific handlers.
 func ListHandler(e *Env, w http.ResponseWriter, r *http.Request) {
 	// We always deal in plain text, so may as well be explicit about it.
 	w.Header().Set("Content-Type", "text/plain")
@@ -73,6 +86,8 @@ func ListHandler(e *Env, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// PutHandler adds an item to a list. If the list does not already
+// exist, it will be created.
 func PutHandler(e *Env, w http.ResponseWriter, r *http.Request, list string, item string) {
 	count, err := e.Store.Add(list, item)
 	if err != nil {
@@ -83,6 +98,8 @@ func PutHandler(e *Env, w http.ResponseWriter, r *http.Request, list string, ite
 	fmt.Fprintf(w, "ADDED %d\n", count)
 }
 
+// IncHandler increments an item in a list. The returned
+// body text says the number of items found and incremented (1 or 0).
 func IncHandler(e *Env, w http.ResponseWriter, r *http.Request, list string, item string) {
 	count, err := e.Store.Inc(list, item)
 	if err != nil {
@@ -93,6 +110,8 @@ func IncHandler(e *Env, w http.ResponseWriter, r *http.Request, list string, ite
 	fmt.Fprintf(w, "INCREMENTED %d\n", count)
 }
 
+// DelHandler deletes an item from a list. The returned
+// body text says the number of items found and deleted (1 or 0).
 func DelHandler(e *Env, w http.ResponseWriter, r *http.Request, list string, item string) {
 	count, err := e.Store.Del(list, item)
 	if err != nil {
@@ -103,6 +122,9 @@ func DelHandler(e *Env, w http.ResponseWriter, r *http.Request, list string, ite
 	fmt.Fprintf(w, "DELETED %d\n", count)
 }
 
+// GetHandler returns the number of attempts that were made to
+// complete an item in a list. When a list or list item
+// is missing, the client will get a 404 instead.
 func GetHandler(e *Env, w http.ResponseWriter, r *http.Request, list string, item string) {
 	attempts, ok, err := e.Store.Get(list, item)
 	if err != nil {
@@ -124,6 +146,11 @@ func getScrubbedLines(bodyBytes []byte) []string {
 	return strings.Split(bodyString, "\n")
 }
 
+// BulkPutHandler adds all of the items in the request body
+// (item names separated by newlines) to the specified
+// list, and sets their completion attempt counts to 0.
+// The response contains the number of items successfully
+// inserted, generally len(items) or 0.
 func BulkPutHandler(e *Env, w http.ResponseWriter, r *http.Request, list string) {
 	if r.Body == nil {
 		fmt.Fprintf(w, "ADDED 0\n")
@@ -146,6 +173,16 @@ func BulkPutHandler(e *Env, w http.ResponseWriter, r *http.Request, list string)
 	fmt.Fprintf(w, "ADDED %d\n", count)
 }
 
+// BulkGetHandler requires the "X-IIDY-Count" header, and takes
+// an optional "X-IIDY-After-Item" header. It returns a response body of
+// list items; each list item is followed by a space and the number of
+// attempts to complete that list item. Each list item / attempt count
+// pair is separated by a newline. "X-IIDY-Count" determines how many
+// items are returned (from the sorted list). "X-IIDY-After-Item" determines
+// the offset in the list; when set to the empty string, we start at the
+// beginning of the list; when set to an item (generally the last item
+// from a previous call to this handler) we start after that item in
+// the list.
 func BulkGetHandler(e *Env, w http.ResponseWriter, r *http.Request, list string) {
 	startID := r.Header.Get("X-IIDY-After-Item")
 	countStr := r.Header.Get("X-IIDY-Count")
@@ -175,6 +212,10 @@ func BulkGetHandler(e *Env, w http.ResponseWriter, r *http.Request, list string)
 	}
 }
 
+// BulkIncHandler increments all of the items in the request body
+// (item names separated by newlines) in the specified
+// list. The response contains the number of items successfully
+// incremented, generally len(items) or 0.
 func BulkIncHandler(e *Env, w http.ResponseWriter, r *http.Request, list string) {
 	if r.Body == nil {
 		fmt.Fprintf(w, "INCREMENTED 0\n")
@@ -197,6 +238,10 @@ func BulkIncHandler(e *Env, w http.ResponseWriter, r *http.Request, list string)
 	fmt.Fprintf(w, "INCREMENTED %d\n", count)
 }
 
+// BulkDelHandler deletes all of the items in the request body
+// (item names separated by newlines) from the specified
+// list. The response contains the number of items successfully
+// deleted, generally len(items) or 0.
 func BulkDelHandler(e *Env, w http.ResponseWriter, r *http.Request, list string) {
 	if r.Body == nil {
 		fmt.Fprintf(w, "ADDED 0\n")

@@ -8,16 +8,22 @@ import (
 	"github.com/pkg/errors"
 )
 
+// ListEntry is a list item and the number of times
+// an attempt has been made to complete it.
 type ListEntry struct {
 	Item     string
 	Attempts int
 }
 
+// PgStore is the backend store where lists and their
+// items are kept.
 type PgStore struct {
-	// need a pg connection pool here
 	pool *pgx.ConnPool
 }
 
+// NewPgStore returns a pointer to a new PgStore.
+// It's best to treat an instance of PgStore like
+// a singleton, and have only one per process.
 func NewPgStore() (*PgStore, error) {
 	// TODO: make this configurable
 	conf := pgx.ConnConfig{Host: "localhost", Database: "iidy", User: "iidy"}
@@ -30,6 +36,8 @@ func NewPgStore() (*PgStore, error) {
 	return &p, nil
 }
 
+// Nuke will destroy every list in the data store.
+// Use with caution.
 func (p *PgStore) Nuke() error {
 	_, err := p.pool.Exec(`truncate table lists`)
 	if err != nil {
@@ -38,6 +46,8 @@ func (p *PgStore) Nuke() error {
 	return nil
 }
 
+// Add adds an item to a list. If the list does not already
+// exist, it will be created.
 func (p *PgStore) Add(list string, item string) (int64, error) {
 	commandTag, err := p.pool.Exec(`
 		insert into lists
@@ -49,6 +59,11 @@ func (p *PgStore) Add(list string, item string) (int64, error) {
 	return commandTag.RowsAffected(), nil
 }
 
+// Get returns the number of attempts that were made to
+// complete an item in a list. When a list or list item
+// is missing, the number of attempts will be returned
+// as 0, but the second return argument (commonly assiged
+// to "ok") will be false.
 func (p *PgStore) Get(list string, item string) (int, bool, error) {
 	var attempts int
 	err := p.pool.QueryRow(`
@@ -65,6 +80,8 @@ func (p *PgStore) Get(list string, item string) (int, bool, error) {
 	return attempts, true, nil
 }
 
+// Del deletes an item from a list. The first return value
+// is the number of items found and deleted (1 or 0).
 func (p *PgStore) Del(list string, item string) (int64, error) {
 	commandTag, err := p.pool.Exec(`
 		delete from lists
@@ -76,6 +93,9 @@ func (p *PgStore) Del(list string, item string) (int64, error) {
 	return commandTag.RowsAffected(), nil
 }
 
+// Inc increments the number of attempts to complete
+// an item from a list. The first return value
+// is the number of items found and incremented (1 or 0).
 func (p *PgStore) Inc(list string, item string) (int64, error) {
 	commandTag, err := p.pool.Exec(`
 		update lists
@@ -88,6 +108,10 @@ func (p *PgStore) Inc(list string, item string) (int64, error) {
 	return commandTag.RowsAffected(), nil
 }
 
+// BulkAdd adds a slice of items (strings) to the specified
+// list, and sets their completion attempt counts to 0.
+// The first return value is the number of items successfully
+// inserted, generally len(items) or 0.
 func (p *PgStore) BulkAdd(list string, items []string) (int64, error) {
 	if items == nil || len(items) == 0 {
 		return 0, nil
@@ -128,6 +152,11 @@ func (p *PgStore) BulkAdd(list string, items []string) (int64, error) {
 	return commandTag.RowsAffected(), nil
 }
 
+// BulkGet gets a slice of ListEntries from the specified
+// list (alphabetically sorted), starting after the startID,
+// or from the beginning of the list, if startID is an empty string.
+// If there is nothing to be found, an empty slice is returned.
+//
 // The general pattern being followed here is explained very well at
 // http://use-the-index-luke.com/sql/partial-results/fetch-next-page
 func (p *PgStore) BulkGet(list string, startID string, count int) ([]ListEntry, error) {
@@ -185,6 +214,9 @@ func (p *PgStore) BulkGet(list string, startID string, count int) ([]ListEntry, 
 	return items, nil
 }
 
+// BulkDel deletes a slice of items (strings) from the specified
+// list. The first return value is the number of items successfully
+// deleted, generally len(items) or 0.
 func (p *PgStore) BulkDel(list string, items []string) (int64, error) {
 	if items == nil || len(items) == 0 {
 		return 0, nil
@@ -220,6 +252,9 @@ func (p *PgStore) BulkDel(list string, items []string) (int64, error) {
 	return commandTag.RowsAffected(), nil
 }
 
+// BulkInc increments the attempts count for each item in the items
+// slice for the specified list.  The first return value is the number
+// of items successfully incremented, generally len(items) or 0.
 func (p *PgStore) BulkInc(list string, items []string) (int64, error) {
 	if items == nil || len(items) == 0 {
 		return 0, nil
