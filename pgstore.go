@@ -264,6 +264,7 @@ func (p *PgStore) BulkInc(list string, items []string) (int64, error) {
 	//    set attempts = attempts + 1
 	//       where list = $1
 	//         and item in (select unnest(array[$2, $3, ... $12]))"
+	// TODO: consider using values instead of select unnest array
 	var buffer bytes.Buffer
 	buffer.WriteString(`
 		update lists
