@@ -224,26 +224,26 @@ func (p *PgStore) BulkDel(list string, items []string) (int64, error) {
 	// The query we need to build looks like this:
 	// delete from lists
 	//       where list = $1
-	//         and item in (select unnest(array[$2, $3, ... $12]))"
+	//         and item in (values ($2), ($3), ... ($12))"
 	var buffer bytes.Buffer
 	buffer.WriteString(`
 		delete from lists
 		      where list = $1
-		        and item in (select unnest(array[`)
+		        and item in (values `)
 	argNum := 1
 	args := make(pgx.QueryArgs, 0)
 	args.Append(list)
 	lastIndex := len(items) - 1
 	for i, item := range items {
-		buffer.WriteString("$")
+		buffer.WriteString("($")
 		argNum++
 		buffer.WriteString(strconv.Itoa(argNum))
 		if i < lastIndex {
-			buffer.WriteString(", ")
+			buffer.WriteString("), ")
 		}
 		args.Append(item)
 	}
-	buffer.WriteString("]))")
+	buffer.WriteString("))")
 	sql := buffer.String()
 	commandTag, err := p.pool.Exec(sql, args...)
 	if err != nil {
@@ -263,28 +263,27 @@ func (p *PgStore) BulkInc(list string, items []string) (int64, error) {
 	// update lists
 	//    set attempts = attempts + 1
 	//       where list = $1
-	//         and item in (select unnest(array[$2, $3, ... $12]))"
-	// TODO: consider using values instead of select unnest array
+	//         and item in (values ($2), ($3), ... ($12))"
 	var buffer bytes.Buffer
 	buffer.WriteString(`
 		update lists
 		   set attempts = attempts + 1
 	     where list = $1
-	       and item in (select unnest(array[`)
+	       and item in (values `)
 	argNum := 1
 	args := make(pgx.QueryArgs, 0)
 	args.Append(list)
 	lastIndex := len(items) - 1
 	for i, item := range items {
-		buffer.WriteString("$")
+		buffer.WriteString("($")
 		argNum++
 		buffer.WriteString(strconv.Itoa(argNum))
 		if i < lastIndex {
-			buffer.WriteString(", ")
+			buffer.WriteString("), ")
 		}
 		args.Append(item)
 	}
-	buffer.WriteString("]))")
+	buffer.WriteString("))")
 	sql := buffer.String()
 	commandTag, err := p.pool.Exec(sql, args...)
 	if err != nil {
