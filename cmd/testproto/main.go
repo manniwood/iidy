@@ -10,9 +10,9 @@ import (
 )
 
 func main() {
-	li := &iidy.ListItem{
-		ListName: "test list",
-		ListItem: "test value",
+	li := &iidy.Entry{
+		List: "test list",
+		Item: "test value",
 	}
 	// Write the list item
 	out, err := proto.Marshal(li)
@@ -27,7 +27,7 @@ func main() {
 	if err != nil {
 		log.Fatalln("Error reading file:", err)
 	}
-	readLi := &iidy.ListItem{}
+	readLi := &iidy.Entry{}
 	if err := proto.Unmarshal(in, readLi); err != nil {
 		log.Fatalln("Failed to parse address book:", err)
 	}

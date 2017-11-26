@@ -8,8 +8,8 @@ It is generated from these files:
 	iidy.proto
 
 It has these top-level messages:
-	ListItem
-	ListItems
+	Entry
+	Entries
 */
 package iidy
 
@@ -28,69 +28,68 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
-type ListItem struct {
-	ListName string `protobuf:"bytes,1,opt,name=list_name,json=listName" json:"list_name,omitempty"`
-	ListItem string `protobuf:"bytes,2,opt,name=list_item,json=listItem" json:"list_item,omitempty"`
+type Entry struct {
+	List string `protobuf:"bytes,1,opt,name=list" json:"list,omitempty"`
+	Item string `protobuf:"bytes,2,opt,name=item" json:"item,omitempty"`
 }
 
-func (m *ListItem) Reset()                    { *m = ListItem{} }
-func (m *ListItem) String() string            { return proto.CompactTextString(m) }
-func (*ListItem) ProtoMessage()               {}
-func (*ListItem) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{0} }
+func (m *Entry) Reset()                    { *m = Entry{} }
+func (m *Entry) String() string            { return proto.CompactTextString(m) }
+func (*Entry) ProtoMessage()               {}
+func (*Entry) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{0} }
 
-func (m *ListItem) GetListName() string {
+func (m *Entry) GetList() string {
 	if m != nil {
-		return m.ListName
+		return m.List
 	}
 	return ""
 }
 
-func (m *ListItem) GetListItem() string {
+func (m *Entry) GetItem() string {
 	if m != nil {
-		return m.ListItem
+		return m.Item
 	}
 	return ""
 }
 
-type ListItems struct {
-	ListName  string   `protobuf:"bytes,1,opt,name=list_name,json=listName" json:"list_name,omitempty"`
-	ListItems []string `protobuf:"bytes,2,rep,name=list_items,json=listItems" json:"list_items,omitempty"`
+type Entries struct {
+	List  string   `protobuf:"bytes,1,opt,name=list" json:"list,omitempty"`
+	Items []string `protobuf:"bytes,2,rep,name=items" json:"items,omitempty"`
 }
 
-func (m *ListItems) Reset()                    { *m = ListItems{} }
-func (m *ListItems) String() string            { return proto.CompactTextString(m) }
-func (*ListItems) ProtoMessage()               {}
-func (*ListItems) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{1} }
+func (m *Entries) Reset()                    { *m = Entries{} }
+func (m *Entries) String() string            { return proto.CompactTextString(m) }
+func (*Entries) ProtoMessage()               {}
+func (*Entries) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{1} }
 
-func (m *ListItems) GetListName() string {
+func (m *Entries) GetList() string {
 	if m != nil {
-		return m.ListName
+		return m.List
 	}
 	return ""
 }
 
-func (m *ListItems) GetListItems() []string {
+func (m *Entries) GetItems() []string {
 	if m != nil {
-		return m.ListItems
+		return m.Items
 	}
 	return nil
 }
 
 func init() {
-	proto.RegisterType((*ListItem)(nil), "iidy.ListItem")
-	proto.RegisterType((*ListItems)(nil), "iidy.ListItems")
+	proto.RegisterType((*Entry)(nil), "iidy.Entry")
+	proto.RegisterType((*Entries)(nil), "iidy.Entries")
 }
 
 func init() { proto.RegisterFile("iidy.proto", fileDescriptor0) }
 
 var fileDescriptor0 = []byte{
-	// 122 bytes of a gzipped FileDescriptorProto
+	// 108 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xe2, 0xca, 0xcc, 0x4c, 0xa9,
-	0xd4, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0x01, 0xb1, 0x95, 0x5c, 0xb8, 0x38, 0x7c, 0x32,
-	0x8b, 0x4b, 0x3c, 0x4b, 0x52, 0x73, 0x85, 0xa4, 0xb9, 0x38, 0x73, 0x32, 0x8b, 0x4b, 0xe2, 0xf3,
-	0x12, 0x73, 0x53, 0x25, 0x18, 0x15, 0x18, 0x35, 0x38, 0x83, 0x38, 0x40, 0x02, 0x7e, 0x89, 0xb9,
-	0xa9, 0x70, 0xc9, 0xcc, 0x92, 0xd4, 0x5c, 0x09, 0x26, 0x84, 0x24, 0x48, 0xa7, 0x92, 0x3b, 0x17,
-	0x27, 0xcc, 0x94, 0x62, 0xfc, 0xc6, 0xc8, 0x72, 0x71, 0xc1, 0x8d, 0x29, 0x96, 0x60, 0x52, 0x60,
-	0xd6, 0xe0, 0x0c, 0xe2, 0x84, 0x99, 0x53, 0x9c, 0xc4, 0x06, 0x76, 0x9b, 0x31, 0x20, 0x00, 0x00,
-	0xff, 0xff, 0x7e, 0x7b, 0xe5, 0xd5, 0xa9, 0x00, 0x00, 0x00,
+	0xd4, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0x01, 0xb1, 0x95, 0xf4, 0xb9, 0x58, 0x5d, 0xf3,
+	0x4a, 0x8a, 0x2a, 0x85, 0x84, 0xb8, 0x58, 0x72, 0x32, 0x8b, 0x4b, 0x24, 0x18, 0x15, 0x18, 0x35,
+	0x38, 0x83, 0xc0, 0x6c, 0x90, 0x58, 0x66, 0x49, 0x6a, 0xae, 0x04, 0x13, 0x44, 0x0c, 0xc4, 0x56,
+	0x32, 0xe6, 0x62, 0x07, 0x69, 0xc8, 0x4c, 0x2d, 0xc6, 0xaa, 0x45, 0x84, 0x8b, 0x15, 0xa4, 0xac,
+	0x58, 0x82, 0x49, 0x81, 0x59, 0x83, 0x33, 0x08, 0xc2, 0x49, 0x62, 0x03, 0x5b, 0x69, 0x0c, 0x08,
+	0x00, 0x00, 0xff, 0xff, 0x86, 0xaa, 0x0d, 0x0b, 0x80, 0x00, 0x00, 0x00,
 }
