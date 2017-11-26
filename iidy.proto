@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package iidy;
+
+message ListItem {
+  string list_name = 1;
+  string list_item  = 2;
+}
+
+message ListItems {
+  string list_name = 1;
+  repeated string list_items = 2;
+}
