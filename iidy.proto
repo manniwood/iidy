@@ -2,12 +2,27 @@ syntax = "proto3";
 
 package iidy;
 
+// A single list entry
 message Entry {
   string list = 1;
   string item  = 2;
 }
 
+// A batch of list entries
 message Entries {
   string list = 1;
   repeated string items = 2;
+}
+
+// A reply from the service, saying what was done,
+// and how many times.
+message Reply {
+  string verb = 1;
+  int32 count = 2;
+}
+
+// RPC implementation of IIDY
+service RPCer {
+  // Puts a new value in a list
+  rpc Put (Entry) returns (Reply) {}
 }
