@@ -10,12 +10,18 @@ It is generated from these files:
 It has these top-level messages:
 	Entry
 	Entries
+	Reply
 */
 package iidy
 
 import proto "github.com/golang/protobuf/proto"
 import fmt "fmt"
 import math "math"
+
+import (
+	context "golang.org/x/net/context"
+	grpc "google.golang.org/grpc"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -28,6 +34,7 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
+// A single list entry
 type Entry struct {
 	List string `protobuf:"bytes,1,opt,name=list" json:"list,omitempty"`
 	Item string `protobuf:"bytes,2,opt,name=item" json:"item,omitempty"`
@@ -52,6 +59,7 @@ func (m *Entry) GetItem() string {
 	return ""
 }
 
+// A batch of list entries
 type Entries struct {
 	List  string   `protobuf:"bytes,1,opt,name=list" json:"list,omitempty"`
 	Items []string `protobuf:"bytes,2,rep,name=items" json:"items,omitempty"`
@@ -76,20 +84,125 @@ func (m *Entries) GetItems() []string {
 	return nil
 }
 
+// A reply from the service, saying what was done,
+// and how many times.
+type Reply struct {
+	Verb  string `protobuf:"bytes,1,opt,name=verb" json:"verb,omitempty"`
+	Count int32  `protobuf:"varint,2,opt,name=count" json:"count,omitempty"`
+}
+
+func (m *Reply) Reset()                    { *m = Reply{} }
+func (m *Reply) String() string            { return proto.CompactTextString(m) }
+func (*Reply) ProtoMessage()               {}
+func (*Reply) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{2} }
+
+func (m *Reply) GetVerb() string {
+	if m != nil {
+		return m.Verb
+	}
+	return ""
+}
+
+func (m *Reply) GetCount() int32 {
+	if m != nil {
+		return m.Count
+	}
+	return 0
+}
+
 func init() {
 	proto.RegisterType((*Entry)(nil), "iidy.Entry")
 	proto.RegisterType((*Entries)(nil), "iidy.Entries")
+	proto.RegisterType((*Reply)(nil), "iidy.Reply")
+}
+
+// Reference imports to suppress errors if they are not otherwise used.
+var _ context.Context
+var _ grpc.ClientConn
+
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the grpc package it is being compiled against.
+const _ = grpc.SupportPackageIsVersion4
+
+// Client API for RPCer service
+
+type RPCerClient interface {
+	// Puts a new value in a list
+	Put(ctx context.Context, in *Entry, opts ...grpc.CallOption) (*Reply, error)
+}
+
+type rPCerClient struct {
+	cc *grpc.ClientConn
+}
+
+func NewRPCerClient(cc *grpc.ClientConn) RPCerClient {
+	return &rPCerClient{cc}
+}
+
+func (c *rPCerClient) Put(ctx context.Context, in *Entry, opts ...grpc.CallOption) (*Reply, error) {
+	out := new(Reply)
+	err := grpc.Invoke(ctx, "/iidy.RPCer/Put", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// Server API for RPCer service
+
+type RPCerServer interface {
+	// Puts a new value in a list
+	Put(context.Context, *Entry) (*Reply, error)
+}
+
+func RegisterRPCerServer(s *grpc.Server, srv RPCerServer) {
+	s.RegisterService(&_RPCer_serviceDesc, srv)
+}
+
+func _RPCer_Put_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Entry)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RPCerServer).Put(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/iidy.RPCer/Put",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RPCerServer).Put(ctx, req.(*Entry))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+var _RPCer_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "iidy.RPCer",
+	HandlerType: (*RPCerServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Put",
+			Handler:    _RPCer_Put_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "iidy.proto",
 }
 
 func init() { proto.RegisterFile("iidy.proto", fileDescriptor0) }
 
 var fileDescriptor0 = []byte{
-	// 108 bytes of a gzipped FileDescriptorProto
+	// 169 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xe2, 0xca, 0xcc, 0x4c, 0xa9,
 	0xd4, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0x01, 0xb1, 0x95, 0xf4, 0xb9, 0x58, 0x5d, 0xf3,
 	0x4a, 0x8a, 0x2a, 0x85, 0x84, 0xb8, 0x58, 0x72, 0x32, 0x8b, 0x4b, 0x24, 0x18, 0x15, 0x18, 0x35,
 	0x38, 0x83, 0xc0, 0x6c, 0x90, 0x58, 0x66, 0x49, 0x6a, 0xae, 0x04, 0x13, 0x44, 0x0c, 0xc4, 0x56,
 	0x32, 0xe6, 0x62, 0x07, 0x69, 0xc8, 0x4c, 0x2d, 0xc6, 0xaa, 0x45, 0x84, 0x8b, 0x15, 0xa4, 0xac,
-	0x58, 0x82, 0x49, 0x81, 0x59, 0x83, 0x33, 0x08, 0xc2, 0x49, 0x62, 0x03, 0x5b, 0x69, 0x0c, 0x08,
-	0x00, 0x00, 0xff, 0xff, 0x86, 0xaa, 0x0d, 0x0b, 0x80, 0x00, 0x00, 0x00,
+	0x58, 0x82, 0x49, 0x81, 0x59, 0x83, 0x33, 0x08, 0xc2, 0x51, 0x32, 0xe4, 0x62, 0x0d, 0x4a, 0x2d,
+	0xc8, 0x01, 0xdb, 0x52, 0x96, 0x5a, 0x94, 0x04, 0xd3, 0x02, 0x62, 0x83, 0xb4, 0x24, 0xe7, 0x97,
+	0xe6, 0x95, 0x80, 0xad, 0x61, 0x0d, 0x82, 0x70, 0x8c, 0xb4, 0xb8, 0x58, 0x83, 0x02, 0x9c, 0x53,
+	0x8b, 0x84, 0x14, 0xb9, 0x98, 0x03, 0x4a, 0x4b, 0x84, 0xb8, 0xf5, 0xc0, 0x6e, 0x07, 0x3b, 0x56,
+	0x0a, 0xca, 0x01, 0x9b, 0xa9, 0xc4, 0x90, 0xc4, 0x06, 0xf6, 0x91, 0x31, 0x20, 0x00, 0x00, 0xff,
+	0xff, 0x1e, 0x4f, 0x18, 0x44, 0xdf, 0x00, 0x00, 0x00,
 }

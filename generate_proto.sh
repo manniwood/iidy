@@ -4,5 +4,5 @@ set -e
 set -u
 set -o pipefail
 
-protoc -I=. --go_out=. ./iidy.proto
+protoc -I=. --go_out=plugins=grpc:. ./iidy.proto
 
