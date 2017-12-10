@@ -18,7 +18,7 @@ message Entries {
 // and how many times.
 message Reply {
   string verb = 1;
-  int32 count = 2;
+  int64 count = 2;
 }
 
 // RPC implementation of IIDY
