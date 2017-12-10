@@ -26,16 +26,27 @@ func get(client iidy.RPCerClient, list string, item string) {
 	if err != nil {
 		log.Fatalf("could not get: %v", err)
 	}
-	log.Printf("Successfully Got %v", r)
-	log.Printf("Attempts: %v", r.Attempts)
+	if r.Ok {
+		log.Printf("Attempts: %v", r.Attempts)
+	} else {
+		log.Printf("Not found")
+	}
 }
 
 func inc(client iidy.RPCerClient, list string, item string) {
 	r, err := client.Inc(context.Background(), &iidy.Entry{List: list, Item: item})
 	if err != nil {
-		log.Fatalf("could not put: %v", err)
+		log.Fatalf("could not Increment: %v", err)
 	}
 	log.Printf("Successfully Incremented %v", r)
+}
+
+func del(client iidy.RPCerClient, list string, item string) {
+	r, err := client.Del(context.Background(), &iidy.Entry{List: list, Item: item})
+	if err != nil {
+		log.Fatalf("could not Delete: %v", err)
+	}
+	log.Printf("Successfully Deleted %v", r)
 }
 
 func main() {
@@ -61,6 +72,8 @@ func main() {
 		get(client, list, item)
 	case "inc":
 		inc(client, list, item)
+	case "del":
+		del(client, list, item)
 	default:
 		log.Fatalf("do not know how to %s\n", verb)
 	}

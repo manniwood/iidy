@@ -41,6 +41,15 @@ func (s *server) Inc(ctx context.Context, in *iidy.Entry) (*iidy.PutReply, error
 	return &iidy.PutReply{Verb: "INCREMENTED", Count: count}, nil
 }
 
+// Del implements iidy.RPCerServer
+func (s *server) Del(ctx context.Context, in *iidy.Entry) (*iidy.PutReply, error) {
+	count, err := s.Store.Del(in.List, in.Item)
+	if err != nil {
+		return nil, err
+	}
+	return &iidy.PutReply{Verb: "DELETED", Count: count}, nil
+}
+
 func main() {
 	pgStore, err := iidy.NewPgStore()
 	if err != nil {

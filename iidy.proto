@@ -39,4 +39,6 @@ service RPCer {
   rpc Get (Entry) returns (GetReply) {}
   // Increments a value's number of attempts
   rpc Inc (Entry) returns (PutReply) {}
+  // Deletes an item from a list
+  rpc Del (Entry) returns (PutReply) {}
 }
