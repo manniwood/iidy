@@ -16,7 +16,7 @@ message Entries {
 
 // A reply from the service, saying what was done,
 // and how many times.
-message Reply {
+message PutReply {
   string verb = 1;
   int64 count = 2;
 }
@@ -34,7 +34,7 @@ message GetReply {
 // RPC implementation of IIDY
 service RPCer {
   // Puts a new value in a list
-  rpc Put (Entry) returns (Reply) {}
+  rpc Put (Entry) returns (PutReply) {}
   // Gets a value's number of attempts from a list
   rpc Get (Entry) returns (GetReply) {}
 }

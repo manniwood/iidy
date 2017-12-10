@@ -15,12 +15,12 @@ type server struct {
 }
 
 // Put implements iidy.RPCerServer
-func (s *server) Put(ctx context.Context, in *iidy.Entry) (*iidy.Reply, error) {
+func (s *server) Put(ctx context.Context, in *iidy.Entry) (*iidy.PutReply, error) {
 	count, err := s.Store.Add(in.List, in.Item)
 	if err != nil {
 		return nil, err
 	}
-	return &iidy.Reply{Verb: "ADDED", Count: count}, nil
+	return &iidy.PutReply{Verb: "ADDED", Count: count}, nil
 }
 
 // Get implements iidy.RPCerServer
