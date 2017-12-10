@@ -32,6 +32,15 @@ func (s *server) Get(ctx context.Context, in *iidy.Entry) (*iidy.GetReply, error
 	return &iidy.GetReply{Attempts: int64(attempts), Ok: ok}, nil
 }
 
+// Put implements iidy.RPCerServer
+func (s *server) Inc(ctx context.Context, in *iidy.Entry) (*iidy.PutReply, error) {
+	count, err := s.Store.Inc(in.List, in.Item)
+	if err != nil {
+		return nil, err
+	}
+	return &iidy.PutReply{Verb: "INCREMENTED", Count: count}, nil
+}
+
 func main() {
 	pgStore, err := iidy.NewPgStore()
 	if err != nil {

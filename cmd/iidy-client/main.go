@@ -30,6 +30,14 @@ func get(client iidy.RPCerClient, list string, item string) {
 	log.Printf("Attempts: %v", r.Attempts)
 }
 
+func inc(client iidy.RPCerClient, list string, item string) {
+	r, err := client.Inc(context.Background(), &iidy.Entry{List: list, Item: item})
+	if err != nil {
+		log.Fatalf("could not put: %v", err)
+	}
+	log.Printf("Successfully Incremented %v", r)
+}
+
 func main() {
 	// Set up a connection to the server
 	conn, err := grpc.Dial(address, grpc.WithInsecure())
@@ -51,6 +59,8 @@ func main() {
 		put(client, list, item)
 	case "get":
 		get(client, list, item)
+	case "inc":
+		inc(client, list, item)
 	default:
 		log.Fatalf("do not know how to %s\n", verb)
 	}

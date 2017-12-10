@@ -37,4 +37,6 @@ service RPCer {
   rpc Put (Entry) returns (PutReply) {}
   // Gets a value's number of attempts from a list
   rpc Get (Entry) returns (GetReply) {}
+  // Increments a value's number of attempts
+  rpc Inc (Entry) returns (PutReply) {}
 }
