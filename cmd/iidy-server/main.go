@@ -10,7 +10,6 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
-// TODO: presumably a reference to an iidy pg store would go in the server
 type server struct {
 	Store *iidy.PgStore
 }
@@ -22,6 +21,15 @@ func (s *server) Put(ctx context.Context, in *iidy.Entry) (*iidy.Reply, error) {
 		return nil, err
 	}
 	return &iidy.Reply{Verb: "ADDED", Count: count}, nil
+}
+
+// Get implements iidy.RPCerServer
+func (s *server) Get(ctx context.Context, in *iidy.Entry) (*iidy.GetReply, error) {
+	attempts, ok, err := s.Store.Get(in.List, in.Item)
+	if err != nil {
+		return nil, err
+	}
+	return &iidy.GetReply{Attempts: int64(attempts), Ok: ok}, nil
 }
 
 func main() {

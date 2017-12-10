@@ -21,8 +21,20 @@ message Reply {
   int64 count = 2;
 }
 
+// A reply from a Get, showing the number of attempts
+// for this item. When the number of attempts is 0,
+// check the OK field to determine if the attempts is
+// 0 because the item was found and not attempted,
+// or if it's because the item was not present.
+message GetReply {
+  int64 attempts = 1;
+  bool ok = 2;
+}
+
 // RPC implementation of IIDY
 service RPCer {
   // Puts a new value in a list
   rpc Put (Entry) returns (Reply) {}
+  // Gets a value's number of attempts from a list
+  rpc Get (Entry) returns (GetReply) {}
 }
