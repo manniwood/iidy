@@ -43,9 +43,24 @@ service RPCer {
     };
   }
   // Gets a value's number of attempts from a list
-  rpc Get (Entry) returns (GetReply) {}
+  rpc Get (Entry) returns (GetReply) {
+    option (google.api.http) = {
+      post: "/v1/iidy/get"
+      body: "*"
+    };
+  }
   // Increments a value's number of attempts
-  rpc Inc (Entry) returns (PutReply) {}
+  rpc Inc (Entry) returns (PutReply) {
+    option (google.api.http) = {
+      post: "/v1/iidy/inc"
+      body: "*"
+    };
+  }
   // Deletes an item from a list
-  rpc Del (Entry) returns (PutReply) {}
+  rpc Del (Entry) returns (PutReply) {
+    option (google.api.http) = {
+      post: "/v1/iidy/del"
+      body: "*"
+    };
+  }
 }

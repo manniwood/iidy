@@ -6,4 +6,32 @@ replies:
 
 {"verb":"ADDED","count":"1"}
 
+$ curl -X POST --data-binary @- localhost:8080/v1/iidy/get
+{ "list": "treats", "item": "macaroon"}
+^D
+
+replies:
+
+{"ok":true}
+
+^^^^ interesting, so the count isn't getting returned in the JSON
+
+$ curl -X POST --data-binary @- localhost:8080/v1/iidy/inc
+{ "list": "treats", "item": "macaroon"}
+^D
+
+replies:
+
+{"verb":"INCREMENTED","count":"1"}
+
+$ curl -X POST --data-binary @- localhost:8080/v1/iidy/del
+{ "list": "treats", "item": "macaroon"}
+^D
+
+replies:
+
+{"verb":"DELETED","count":"1"}
+
+
+
 

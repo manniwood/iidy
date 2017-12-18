@@ -4,6 +4,8 @@ set -e
 set -u
 set -o pipefail
 
+export LD_LIBRARY_PATH=/usr/local/lib
+
 protoc \
 	-I=/usr/local/include \
 	-I=. \
