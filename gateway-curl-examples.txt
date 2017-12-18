@@ -1,0 +1,9 @@
+$ curl -X POST --data-binary @- localhost:8080/v1/iidy/put
+{"list": "treats", "item": "macaroon"}
+^D
+
+replies:
+
+{"verb":"ADDED","count":"1"}
+
+
