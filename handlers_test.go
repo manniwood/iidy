@@ -2,6 +2,7 @@ package iidy
 
 import (
 	"bytes"
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -25,7 +26,7 @@ func TestPutHandler(t *testing.T) {
 	}
 
 	// Did we really add the item?
-	_, ok, err := env.Store.Get("downloads", "kernel.tar.gz")
+	_, ok, err := env.Store.Get(context.Background(), "downloads", "kernel.tar.gz")
 	if err != nil {
 		t.Errorf("Error getting item: %v", err)
 	}
@@ -243,7 +244,7 @@ robots.txt`)
 	}
 
 	// What if we bulk get what we just bulk put?
-	listEntries, err := env.Store.BulkGet("downloads", "", 3)
+	listEntries, err := env.Store.BulkGet(context.Background(), "downloads", "", 3)
 	if err != nil {
 		t.Errorf("Error fetching items: %v", err)
 	}
@@ -360,7 +361,7 @@ e`)
 
 	// If we look for incremented items, are they incremented?
 	for _, file := range []string{"a", "b", "c", "d", "e"} {
-		attempts, ok, err := s.Get("downloads", file)
+		attempts, ok, err := s.Get(context.Background(), "downloads", file)
 		if err != nil {
 			t.Errorf("Error getting item: %v", err)
 		}
@@ -374,7 +375,7 @@ e`)
 
 	// What about non-incremented items? Were they left alone?
 	for _, file := range []string{"f", "g"} {
-		attempts, ok, err := s.Get("downloads", file)
+		attempts, ok, err := s.Get(context.Background(), "downloads", file)
 		if err != nil {
 			t.Errorf("Error getting item: %v", err)
 		}
@@ -432,7 +433,7 @@ e`)
 
 	// If we look for the deleted items, are they correctly missing?
 	for _, file := range []string{"a", "b", "c", "d", "e"} {
-		_, ok, err := s.Get("downloads", file)
+		_, ok, err := s.Get(context.Background(), "downloads", file)
 		if err != nil {
 			t.Errorf("Error getting item: %v", err)
 		}
@@ -443,7 +444,7 @@ e`)
 
 	// Were other items left alone?
 	for _, file := range []string{"f", "g"} {
-		attempts, ok, err := s.Get("downloads", file)
+		attempts, ok, err := s.Get(context.Background(), "downloads", file)
 		if err != nil {
 			t.Errorf("Error getting item: %v", err)
 		}

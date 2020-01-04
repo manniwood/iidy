@@ -41,8 +41,8 @@ func NewPgStore() (*PgStore, error) {
 
 // Nuke will destroy every list in the data store.
 // Use with caution.
-func (p *PgStore) Nuke() error {
-	_, err := p.pool.Exec(context.TODO(), `truncate table lists`)
+func (p *PgStore) Nuke(ctx context.Context) error {
+	_, err := p.pool.Exec(ctx, `truncate table lists`)
 	if err != nil {
 		return err
 	}
@@ -51,8 +51,8 @@ func (p *PgStore) Nuke() error {
 
 // Add adds an item to a list. If the list does not already
 // exist, it will be created.
-func (p *PgStore) Add(list string, item string) (int64, error) {
-	commandTag, err := p.pool.Exec(context.TODO(), `
+func (p *PgStore) Add(ctx context.Context, list string, item string) (int64, error) {
+	commandTag, err := p.pool.Exec(ctx, `
 		insert into lists
 		(list, item)
 		values ($1, $2)`, list, item)
@@ -67,9 +67,9 @@ func (p *PgStore) Add(list string, item string) (int64, error) {
 // is missing, the number of attempts will be returned
 // as 0, but the second return argument (commonly assiged
 // to "ok") will be false.
-func (p *PgStore) Get(list string, item string) (int, bool, error) {
+func (p *PgStore) Get(ctx context.Context, list string, item string) (int, bool, error) {
 	var attempts int
-	err := p.pool.QueryRow(context.TODO(), `
+	err := p.pool.QueryRow(ctx, `
 		select attempts
 		  from lists
 		 where list = $1
@@ -85,8 +85,8 @@ func (p *PgStore) Get(list string, item string) (int, bool, error) {
 
 // Del deletes an item from a list. The first return value
 // is the number of items found and deleted (1 or 0).
-func (p *PgStore) Del(list string, item string) (int64, error) {
-	commandTag, err := p.pool.Exec(context.TODO(), `
+func (p *PgStore) Del(ctx context.Context, list string, item string) (int64, error) {
+	commandTag, err := p.pool.Exec(ctx, `
 		delete from lists
 		 where list = $1
 		   and item = $2`, list, item)
@@ -99,8 +99,8 @@ func (p *PgStore) Del(list string, item string) (int64, error) {
 // Inc increments the number of attempts to complete
 // an item from a list. The first return value
 // is the number of items found and incremented (1 or 0).
-func (p *PgStore) Inc(list string, item string) (int64, error) {
-	commandTag, err := p.pool.Exec(context.TODO(), `
+func (p *PgStore) Inc(ctx context.Context, list string, item string) (int64, error) {
+	commandTag, err := p.pool.Exec(ctx, `
 		update lists
 		   set attempts = attempts + 1
 		 where list = $1
@@ -115,7 +115,7 @@ func (p *PgStore) Inc(list string, item string) (int64, error) {
 // list, and sets their completion attempt counts to 0.
 // The first return value is the number of items successfully
 // inserted, generally len(items) or 0.
-func (p *PgStore) BulkAdd(list string, items []string) (int64, error) {
+func (p *PgStore) BulkAdd(ctx context.Context, list string, items []string) (int64, error) {
 	if items == nil || len(items) == 0 {
 		return 0, nil
 	}
@@ -148,7 +148,7 @@ func (p *PgStore) BulkAdd(list string, items []string) (int64, error) {
 		args = append(args, item)
 	}
 	sql := buffer.String()
-	commandTag, err := p.pool.Exec(context.TODO(), sql, args...)
+	commandTag, err := p.pool.Exec(ctx, sql, args...)
 	if err != nil {
 		return 0, err
 	}
@@ -162,7 +162,7 @@ func (p *PgStore) BulkAdd(list string, items []string) (int64, error) {
 //
 // The general pattern being followed here is explained very well at
 // http://use-the-index-luke.com/sql/partial-results/fetch-next-page
-func (p *PgStore) BulkGet(list string, startID string, count int) ([]ListEntry, error) {
+func (p *PgStore) BulkGet(ctx context.Context, list string, startID string, count int) ([]ListEntry, error) {
 	if count == 0 {
 		return []ListEntry{}, nil
 	}
@@ -193,7 +193,7 @@ func (p *PgStore) BulkGet(list string, startID string, count int) ([]ListEntry, 
 		args = append(args, startID)
 		args = append(args, count)
 	}
-	rows, err := p.pool.Query(context.TODO(), sql, args...)
+	rows, err := p.pool.Query(ctx, sql, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -220,7 +220,7 @@ func (p *PgStore) BulkGet(list string, startID string, count int) ([]ListEntry, 
 // BulkDel deletes a slice of items (strings) from the specified
 // list. The first return value is the number of items successfully
 // deleted, generally len(items) or 0.
-func (p *PgStore) BulkDel(list string, items []string) (int64, error) {
+func (p *PgStore) BulkDel(ctx context.Context, list string, items []string) (int64, error) {
 	if items == nil || len(items) == 0 {
 		return 0, nil
 	}
@@ -248,7 +248,7 @@ func (p *PgStore) BulkDel(list string, items []string) (int64, error) {
 	}
 	buffer.WriteString("))")
 	sql := buffer.String()
-	commandTag, err := p.pool.Exec(context.TODO(), sql, args...)
+	commandTag, err := p.pool.Exec(ctx, sql, args...)
 	if err != nil {
 		return 0, err
 	}
@@ -258,7 +258,7 @@ func (p *PgStore) BulkDel(list string, items []string) (int64, error) {
 // BulkInc increments the attempts count for each item in the items
 // slice for the specified list.  The first return value is the number
 // of items successfully incremented, generally len(items) or 0.
-func (p *PgStore) BulkInc(list string, items []string) (int64, error) {
+func (p *PgStore) BulkInc(ctx context.Context, list string, items []string) (int64, error) {
 	if items == nil || len(items) == 0 {
 		return 0, nil
 	}
@@ -288,7 +288,7 @@ func (p *PgStore) BulkInc(list string, items []string) (int64, error) {
 	}
 	buffer.WriteString("))")
 	sql := buffer.String()
-	commandTag, err := p.pool.Exec(context.TODO(), sql, args...)
+	commandTag, err := p.pool.Exec(ctx, sql, args...)
 	if err != nil {
 		return 0, err
 	}

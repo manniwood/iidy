@@ -89,7 +89,7 @@ func ListHandler(e *Env, w http.ResponseWriter, r *http.Request) {
 // PutHandler adds an item to a list. If the list does not already
 // exist, it will be created.
 func PutHandler(e *Env, w http.ResponseWriter, r *http.Request, list string, item string) {
-	count, err := e.Store.Add(list, item)
+	count, err := e.Store.Add(r.Context(), list, item)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to add list item: %v", err)
 		http.Error(w, errStr, http.StatusInternalServerError)
@@ -101,7 +101,7 @@ func PutHandler(e *Env, w http.ResponseWriter, r *http.Request, list string, ite
 // IncHandler increments an item in a list. The returned
 // body text says the number of items found and incremented (1 or 0).
 func IncHandler(e *Env, w http.ResponseWriter, r *http.Request, list string, item string) {
-	count, err := e.Store.Inc(list, item)
+	count, err := e.Store.Inc(r.Context(), list, item)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to increment list item: %v", err)
 		http.Error(w, errStr, http.StatusInternalServerError)
@@ -113,7 +113,7 @@ func IncHandler(e *Env, w http.ResponseWriter, r *http.Request, list string, ite
 // DelHandler deletes an item from a list. The returned
 // body text says the number of items found and deleted (1 or 0).
 func DelHandler(e *Env, w http.ResponseWriter, r *http.Request, list string, item string) {
-	count, err := e.Store.Del(list, item)
+	count, err := e.Store.Del(r.Context(), list, item)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to delete list item: %v", err)
 		http.Error(w, errStr, http.StatusInternalServerError)
@@ -126,7 +126,7 @@ func DelHandler(e *Env, w http.ResponseWriter, r *http.Request, list string, ite
 // complete an item in a list. When a list or list item
 // is missing, the client will get a 404 instead.
 func GetHandler(e *Env, w http.ResponseWriter, r *http.Request, list string, item string) {
-	attempts, ok, err := e.Store.Get(list, item)
+	attempts, ok, err := e.Store.Get(r.Context(), list, item)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to get list item: %v", err)
 		http.Error(w, errStr, http.StatusInternalServerError)
@@ -164,7 +164,7 @@ func BulkPutHandler(e *Env, w http.ResponseWriter, r *http.Request, list string)
 	}
 	items := getScrubbedLines(bodyBytes)
 
-	count, err := e.Store.BulkAdd(list, items)
+	count, err := e.Store.BulkAdd(r.Context(), list, items)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to add list items: %v", err)
 		http.Error(w, errStr, http.StatusInternalServerError)
@@ -199,7 +199,7 @@ func BulkGetHandler(e *Env, w http.ResponseWriter, r *http.Request, list string)
 	if count == 0 {
 		return
 	}
-	listEntries, err := e.Store.BulkGet(list, startID, count)
+	listEntries, err := e.Store.BulkGet(r.Context(), list, startID, count)
 	if len(listEntries) == 0 {
 		// Nothing found, so we are done!
 		return
@@ -229,7 +229,7 @@ func BulkIncHandler(e *Env, w http.ResponseWriter, r *http.Request, list string)
 	}
 	items := getScrubbedLines(bodyBytes)
 
-	count, err := e.Store.BulkInc(list, items)
+	count, err := e.Store.BulkInc(r.Context(), list, items)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to increment list items: %v", err)
 		http.Error(w, errStr, http.StatusInternalServerError)
@@ -255,7 +255,7 @@ func BulkDelHandler(e *Env, w http.ResponseWriter, r *http.Request, list string)
 	}
 	items := getScrubbedLines(bodyBytes)
 
-	count, err := e.Store.BulkDel(list, items)
+	count, err := e.Store.BulkDel(r.Context(), list, items)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to delete list items: %v", err)
 		http.Error(w, errStr, http.StatusInternalServerError)

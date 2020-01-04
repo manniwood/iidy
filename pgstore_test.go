@@ -1,20 +1,23 @@
 package iidy
 
-import "testing"
+import (
+	"context"
+	"testing"
+)
 
 func getEmptyStore(t *testing.T) *PgStore {
 	p, err := NewPgStore()
 	if err != nil {
 		t.Errorf("Error instantiating PgStore: %v", err)
 	}
-	p.Nuke()
+	p.Nuke(context.Background())
 	return p
 }
 
 // Our tests add this test item over and over,
 // so here it is.
 func addSingleStartingItem(t *testing.T, s *PgStore) {
-	count, err := s.Add("downloads", "kernel.tar.gz")
+	count, err := s.Add(context.Background(), "downloads", "kernel.tar.gz")
 	if err != nil {
 		t.Errorf("Error adding item: %v", err)
 	}
@@ -28,7 +31,7 @@ func TestAddAndGet(t *testing.T) {
 	addSingleStartingItem(t, s)
 
 	// Did we really add the item?
-	attempts, ok, err := s.Get("downloads", "kernel.tar.gz")
+	attempts, ok, err := s.Get(context.Background(), "downloads", "kernel.tar.gz")
 	if err != nil {
 		t.Errorf("Error getting item: %v", err)
 	}
@@ -44,7 +47,7 @@ func TestUnhappyGetScenarios(t *testing.T) {
 	s := getEmptyStore(t)
 
 	// What about getting an item that doesn't exist?
-	_, ok, err := s.Get("downloads", "I do not exist")
+	_, ok, err := s.Get(context.Background(), "downloads", "I do not exist")
 	if err != nil {
 		t.Errorf("Error getting item: %v", err)
 	}
@@ -53,7 +56,7 @@ func TestUnhappyGetScenarios(t *testing.T) {
 	}
 
 	// What about getting from a list that doesn't exixt?
-	_, ok, err = s.Get("I do not exist", "kernel.tar.gz")
+	_, ok, err = s.Get(context.Background(), "I do not exist", "kernel.tar.gz")
 	if err != nil {
 		t.Errorf("Error getting item: %v", err)
 	}
@@ -67,7 +70,7 @@ func TestDel(t *testing.T) {
 	addSingleStartingItem(t, s)
 
 	// Can we successfully delete?
-	count, err := s.Del("downloads", "kernel.tar.gz")
+	count, err := s.Del(context.Background(), "downloads", "kernel.tar.gz")
 	if err != nil {
 		t.Errorf("Error trying to delete item from list: %v", err)
 	}
@@ -76,7 +79,7 @@ func TestDel(t *testing.T) {
 	}
 
 	// Does getting the deleted value correctly return nothing?
-	_, ok, err := s.Get("downloads", "kernel.tar.gz")
+	_, ok, err := s.Get(context.Background(), "downloads", "kernel.tar.gz")
 	if err != nil {
 		t.Errorf("Error getting item: %v", err)
 	}
@@ -85,7 +88,7 @@ func TestDel(t *testing.T) {
 	}
 
 	// What about deleting an item that isn't there?
-	count, err = s.Del("downloads", "I do not exist")
+	count, err = s.Del(context.Background(), "downloads", "I do not exist")
 	if err != nil {
 		t.Errorf("Error trying to delete item from list: %v", err)
 	}
@@ -94,7 +97,7 @@ func TestDel(t *testing.T) {
 	}
 
 	// What about deleting an item from a list that isn't there?
-	count, err = s.Del("I do not exist", "kernel.tar.gz")
+	count, err = s.Del(context.Background(), "I do not exist", "kernel.tar.gz")
 	if err != nil {
 		t.Errorf("Error trying to delete item from non-existent list: %v", err)
 	}
@@ -108,7 +111,7 @@ func TestInc(t *testing.T) {
 	addSingleStartingItem(t, s)
 
 	// Does incrementing an item's attempts work?
-	count, err := s.Inc("downloads", "kernel.tar.gz")
+	count, err := s.Inc(context.Background(), "downloads", "kernel.tar.gz")
 	if err != nil {
 		t.Errorf("Error trying to increment: %v", err)
 	}
@@ -117,7 +120,7 @@ func TestInc(t *testing.T) {
 	}
 
 	// When we get the incremented attempt, is is correct?
-	attempts, ok, err := s.Get("downloads", "kernel.tar.gz")
+	attempts, ok, err := s.Get(context.Background(), "downloads", "kernel.tar.gz")
 	if err != nil {
 		t.Errorf("Error getting item: %v", err)
 	}
@@ -129,7 +132,7 @@ func TestInc(t *testing.T) {
 	}
 
 	// What about incrementing an item that's not there?
-	count, err = s.Inc("downloads", "I do not exist")
+	count, err = s.Inc(context.Background(), "downloads", "I do not exist")
 	if err != nil {
 		t.Errorf("Error trying to increment item from list: %v", err)
 	}
@@ -138,7 +141,7 @@ func TestInc(t *testing.T) {
 	}
 
 	// What about incrementing an item from a list that's not there?
-	count, err = s.Inc("I do not exist", "kernel.tar.gz")
+	count, err = s.Inc(context.Background(), "I do not exist", "kernel.tar.gz")
 	if err != nil {
 		t.Errorf("Error trying to increment item from list: %v", err)
 	}
@@ -152,7 +155,7 @@ func TestBulkAdd(t *testing.T) {
 	files := []string{"kernel.tar.gz", "vim.tar.gz", "robots.txt"}
 
 	// Does bulk add work?
-	count, err := s.BulkAdd("downloads", files)
+	count, err := s.BulkAdd(context.Background(), "downloads", files)
 	if err != nil {
 		t.Errorf("Error bulk inserting: %v", err)
 	}
@@ -162,7 +165,7 @@ func TestBulkAdd(t *testing.T) {
 
 	// If we get the list items, do they exist?
 	for _, file := range files {
-		attempts, ok, err := s.Get("downloads", file)
+		attempts, ok, err := s.Get(context.Background(), "downloads", file)
 		if err != nil {
 			t.Errorf("Error getting item: %v", err)
 		}
@@ -175,7 +178,7 @@ func TestBulkAdd(t *testing.T) {
 	}
 
 	// What if we bulk put nothing?
-	count, err = s.BulkAdd("downloads", []string{})
+	count, err = s.BulkAdd(context.Background(), "downloads", []string{})
 	if err != nil {
 		t.Errorf("Error bulk inserting: %v", err)
 	}
@@ -189,7 +192,7 @@ func TestBulkAdd(t *testing.T) {
 func bulkAddTestItems(t *testing.T, s *PgStore) {
 	// Bulk add a bunch of test items.
 	files := []string{"a", "b", "c", "d", "e", "f", "g"}
-	count, err := s.BulkAdd("downloads", files)
+	count, err := s.BulkAdd(context.Background(), "downloads", files)
 	if err != nil {
 		t.Errorf("Error bulk inserting: %v", err)
 	}
@@ -213,7 +216,7 @@ func TestBulkGet(t *testing.T) {
 
 	// If we bulk get 2 items at a time, does everything work?
 	for _, test := range tests {
-		items, err := s.BulkGet("downloads", test.afterItem, 2)
+		items, err := s.BulkGet(context.Background(), "downloads", test.afterItem, 2)
 		if err != nil {
 			t.Errorf("Error bulk fetching: %v", err)
 		}
@@ -223,7 +226,7 @@ func TestBulkGet(t *testing.T) {
 	}
 
 	// What if we bulk get nothing?
-	items, err := s.BulkGet("downloads", "", 0)
+	items, err := s.BulkGet(context.Background(), "downloads", "", 0)
 	if err != nil {
 		t.Errorf("Error bulk deleting: %v", err)
 	}
@@ -237,7 +240,7 @@ func TestBulkInc(t *testing.T) {
 	bulkAddTestItems(t, s)
 
 	// Does bulk increment work?
-	count, err := s.BulkInc("downloads", []string{"a", "b", "c", "d", "e"})
+	count, err := s.BulkInc(context.Background(), "downloads", []string{"a", "b", "c", "d", "e"})
 	if err != nil {
 		t.Errorf("Error bulk incrementing: %v", err)
 	}
@@ -247,7 +250,7 @@ func TestBulkInc(t *testing.T) {
 
 	// If we look for incremented items, are they incremented?
 	for _, file := range []string{"a", "b", "c", "d", "e"} {
-		attempts, ok, err := s.Get("downloads", file)
+		attempts, ok, err := s.Get(context.Background(), "downloads", file)
 		if err != nil {
 			t.Errorf("Error getting item: %v", err)
 		}
@@ -261,7 +264,7 @@ func TestBulkInc(t *testing.T) {
 
 	// What about non-incremented items? Were they left alone?
 	for _, file := range []string{"f", "g"} {
-		attempts, ok, err := s.Get("downloads", file)
+		attempts, ok, err := s.Get(context.Background(), "downloads", file)
 		if err != nil {
 			t.Errorf("Error getting item: %v", err)
 		}
@@ -274,7 +277,7 @@ func TestBulkInc(t *testing.T) {
 	}
 
 	// What if we bulk increment nothing?
-	count, err = s.BulkInc("downloads", []string{})
+	count, err = s.BulkInc(context.Background(), "downloads", []string{})
 	if err != nil {
 		t.Errorf("Error bulk deleting: %v", err)
 	}
@@ -288,7 +291,7 @@ func TestBulkDel(t *testing.T) {
 	bulkAddTestItems(t, s)
 
 	// Does bulk delete work?
-	count, err := s.BulkDel("downloads", []string{"a", "b", "c", "d", "e"})
+	count, err := s.BulkDel(context.Background(), "downloads", []string{"a", "b", "c", "d", "e"})
 	if err != nil {
 		t.Errorf("Error bulk deleting: %v", err)
 	}
@@ -298,7 +301,7 @@ func TestBulkDel(t *testing.T) {
 
 	// If we look for the deleted items, are they correctly missing?
 	for _, file := range []string{"a", "b", "c", "d", "e"} {
-		_, ok, err := s.Get("downloads", file)
+		_, ok, err := s.Get(context.Background(), "downloads", file)
 		if err != nil {
 			t.Errorf("Error getting item: %v", err)
 		}
@@ -309,7 +312,7 @@ func TestBulkDel(t *testing.T) {
 
 	// Were other items left alone?
 	for _, file := range []string{"f", "g"} {
-		attempts, ok, err := s.Get("downloads", file)
+		attempts, ok, err := s.Get(context.Background(), "downloads", file)
 		if err != nil {
 			t.Errorf("Error getting item: %v", err)
 		}
@@ -322,7 +325,7 @@ func TestBulkDel(t *testing.T) {
 	}
 
 	// What if we bulk delete nothing?
-	count, err = s.BulkDel("downloads", []string{})
+	count, err = s.BulkDel(context.Background(), "downloads", []string{})
 	if err != nil {
 		t.Errorf("Error bulk deleting: %v", err)
 	}
@@ -331,6 +334,7 @@ func TestBulkDel(t *testing.T) {
 	}
 }
 
+// TODO: reflect.DeepEquals()?
 func ListEntrySlicesAreEqual(files []ListEntry, items []ListEntry) bool {
 	if files == nil && items == nil {
 		return true
