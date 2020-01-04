@@ -7,7 +7,7 @@ import (
 )
 
 func getEmptyStore(t *testing.T) *PgStore {
-	p, err := NewPgStore()
+	p, err := NewPgStore("")
 	if err != nil {
 		t.Errorf("Error instantiating PgStore: %v", err)
 	}

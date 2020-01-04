@@ -18,6 +18,11 @@ import (
 // %w would permit the caller to unwrap the original pgx errors.
 // We don't want to support pgx errors as part of our API.
 
+// DefaultConnectionURL is the default connection URL
+// to the PostgreSQL database, including connection pool
+// config and application_name config.
+const DefaultConnectionURL string = "postgresql://iidy:password@localhost:5432/iidy?pool_max_conns=5&application_name=iidy"
+
 // ListEntry is a list item and the number of times
 // an attempt has been made to complete it.
 type ListEntry struct {
@@ -28,23 +33,54 @@ type ListEntry struct {
 // PgStore is the backend store where lists and their
 // items are kept.
 type PgStore struct {
-	pool *pgxpool.Pool
+	connectionURL string
+	pool          *pgxpool.Pool
 }
 
 // NewPgStore returns a pointer to a new PgStore.
 // It's best to treat an instance of PgStore like
 // a singleton, and have only one per process.
-// According to https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-CONNSTRING,
-// a connection string is formatted like so:
-// postgresql://[user[:password]@][netloc][:port][,...][/dbname][?param1=value1&...]
-func NewPgStore() (*PgStore, error) {
-	// TODO: make this configurable
-	pool, err := pgxpool.Connect(context.Background(), "postgresql://iidy:password@localhost:5432/iidy?pool_max_conns=5")
+// `connectionURL` is a connection string is formatted like so:
+//
+//     postgresql://[user[:password]@][netloc][:port][,...][/dbname][?param1=value1&...]
+//
+// According to https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-CONNSTRING.
+//
+// If `connectionURL` is the empty string, DefaultConnectionURL will be used.
+func NewPgStore(connectionURL string) (*PgStore, error) {
+	if connectionURL == "" {
+		connectionURL = DefaultConnectionURL
+	}
+	pool, err := pgxpool.Connect(context.Background(), connectionURL)
 	if err != nil {
 		return nil, fmt.Errorf("%v", err)
 	}
-	p := PgStore{pool: pool}
+	p := PgStore{
+		connectionURL: connectionURL,
+		pool:          pool,
+	}
 	return &p, nil
+}
+
+// String makes PgStore a stringer, which makes it easy to
+// print the config for the data store.
+func (p *PgStore) String() string {
+	conf, err := pgxpool.ParseConfig(p.connectionURL)
+	if err != nil {
+		return fmt.Sprintf("Could not parse connection URL: %v", err)
+	}
+	c := conf.ConnConfig.Config
+	return fmt.Sprintf(`
+Host: %s
+Port: %d
+DB:   %s
+User: %s
+`,
+		c.Host,
+		c.Port,
+		c.Database,
+		c.User,
+	)
 }
 
 // Nuke will destroy every list in the data store.
