@@ -3,12 +3,20 @@ package iidy
 import (
 	"bytes"
 	"context"
+	"errors"
+	"fmt"
 	"strconv"
 
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
-	"github.com/pkg/errors"
 )
+
+// NOTE on error handling: we follow the advice at https://blog.golang.org/go1.13-errors:
+// The pgx errors we will be dealing with are internal details.
+// To avoid exposing them to the caller, we repackage them as new
+// errors with the same text. We use the %v formatting verb, since
+// %w would permit the caller to unwrap the original pgx errors.
+// We don't want to support pgx errors as part of our API.
 
 // ListEntry is a list item and the number of times
 // an attempt has been made to complete it.
@@ -33,7 +41,7 @@ func NewPgStore() (*PgStore, error) {
 	// TODO: make this configurable
 	pool, err := pgxpool.Connect(context.Background(), "postgresql://iidy:password@localhost:5432/iidy?pool_max_conns=5")
 	if err != nil {
-		return nil, errors.Wrap(err, "Could not create PgStore")
+		return nil, fmt.Errorf("%v", err)
 	}
 	p := PgStore{pool: pool}
 	return &p, nil
@@ -44,7 +52,7 @@ func NewPgStore() (*PgStore, error) {
 func (p *PgStore) Nuke(ctx context.Context) error {
 	_, err := p.pool.Exec(ctx, `truncate table lists`)
 	if err != nil {
-		return err
+		return fmt.Errorf("%v", err)
 	}
 	return nil
 }
@@ -57,7 +65,7 @@ func (p *PgStore) Add(ctx context.Context, list string, item string) (int64, err
 		(list, item)
 		values ($1, $2)`, list, item)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("%v", err)
 	}
 	return commandTag.RowsAffected(), nil
 }
@@ -75,10 +83,11 @@ func (p *PgStore) Get(ctx context.Context, list string, item string) (int, bool,
 		 where list = $1
 		   and item = $2`, list, item).Scan(&attempts)
 	if err != nil {
-		if err == pgx.ErrNoRows {
+		// using `errors.Is()` is more robust than `if err == pgx.ErrNoRows`
+		if errors.Is(err, pgx.ErrNoRows) {
 			return 0, false, nil
 		}
-		return 0, false, err
+		return 0, false, fmt.Errorf("%v", err)
 	}
 	return attempts, true, nil
 }
@@ -91,7 +100,7 @@ func (p *PgStore) Del(ctx context.Context, list string, item string) (int64, err
 		 where list = $1
 		   and item = $2`, list, item)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("%v", err)
 	}
 	return commandTag.RowsAffected(), nil
 }
@@ -106,7 +115,7 @@ func (p *PgStore) Inc(ctx context.Context, list string, item string) (int64, err
 		 where list = $1
 		   and item = $2`, list, item)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("%v", err)
 	}
 	return commandTag.RowsAffected(), nil
 }
@@ -150,7 +159,7 @@ func (p *PgStore) BulkAdd(ctx context.Context, list string, items []string) (int
 	sql := buffer.String()
 	commandTag, err := p.pool.Exec(ctx, sql, args...)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("%v", err)
 	}
 	return commandTag.RowsAffected(), nil
 }
@@ -195,7 +204,7 @@ func (p *PgStore) BulkGet(ctx context.Context, list string, startID string, coun
 	}
 	rows, err := p.pool.Query(ctx, sql, args...)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%v", err)
 	}
 	defer rows.Close()
 
@@ -207,7 +216,7 @@ func (p *PgStore) BulkGet(ctx context.Context, list string, startID string, coun
 	for rows.Next() {
 		err = rows.Scan(&item, &attempts)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("%v", err)
 		}
 		items = append(items, ListEntry{Item: item, Attempts: attempts})
 	}
@@ -250,7 +259,7 @@ func (p *PgStore) BulkDel(ctx context.Context, list string, items []string) (int
 	sql := buffer.String()
 	commandTag, err := p.pool.Exec(ctx, sql, args...)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("%v", err)
 	}
 	return commandTag.RowsAffected(), nil
 }
@@ -290,7 +299,7 @@ func (p *PgStore) BulkInc(ctx context.Context, list string, items []string) (int
 	sql := buffer.String()
 	commandTag, err := p.pool.Exec(ctx, sql, args...)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("%v", err)
 	}
 	return commandTag.RowsAffected(), nil
 }
