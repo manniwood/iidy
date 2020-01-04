@@ -5,6 +5,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"testing"
 )
 
@@ -248,7 +249,7 @@ robots.txt`)
 	if err != nil {
 		t.Errorf("Error fetching items: %v", err)
 	}
-	if !ListEntrySlicesAreEqual(expected, listEntries) {
+	if !reflect.DeepEqual(expected, listEntries) {
 		t.Errorf("Expected %v; got %v", expected, listEntries)
 	}
 

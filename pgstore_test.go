@@ -2,6 +2,7 @@ package iidy
 
 import (
 	"context"
+	"reflect"
 	"testing"
 )
 
@@ -220,7 +221,7 @@ func TestBulkGet(t *testing.T) {
 		if err != nil {
 			t.Errorf("Error bulk fetching: %v", err)
 		}
-		if !ListEntrySlicesAreEqual(test.want, items) {
+		if !reflect.DeepEqual(test.want, items) {
 			t.Errorf("Expected %v; got %v", test.want, items)
 		}
 	}
@@ -332,23 +333,4 @@ func TestBulkDel(t *testing.T) {
 	if count != 0 {
 		t.Errorf("Bulk deleted wrong number of items. Expected 0, got %v", count)
 	}
-}
-
-// TODO: reflect.DeepEquals()?
-func ListEntrySlicesAreEqual(files []ListEntry, items []ListEntry) bool {
-	if files == nil && items == nil {
-		return true
-	}
-	if files == nil || items == nil {
-		return false
-	}
-	if len(files) != len(items) {
-		return false
-	}
-	for i := range files {
-		if files[i] != items[i] {
-			return false
-		}
-	}
-	return true
 }
