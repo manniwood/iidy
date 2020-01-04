@@ -2,9 +2,11 @@ package iidy
 
 import (
 	"bytes"
+	"context"
 	"strconv"
 
-	"github.com/jackc/pgx"
+	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/pkg/errors"
 )
 
@@ -18,17 +20,18 @@ type ListEntry struct {
 // PgStore is the backend store where lists and their
 // items are kept.
 type PgStore struct {
-	pool *pgx.ConnPool
+	pool *pgxpool.Pool
 }
 
 // NewPgStore returns a pointer to a new PgStore.
 // It's best to treat an instance of PgStore like
 // a singleton, and have only one per process.
+// According to https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-CONNSTRING,
+// a connection string is formatted like so:
+// postgresql://[user[:password]@][netloc][:port][,...][/dbname][?param1=value1&...]
 func NewPgStore() (*PgStore, error) {
 	// TODO: make this configurable
-	conf := pgx.ConnConfig{Host: "localhost", Database: "iidy", User: "iidy"}
-	pconf := pgx.ConnPoolConfig{ConnConfig: conf, MaxConnections: 5}
-	pool, err := pgx.NewConnPool(pconf)
+	pool, err := pgxpool.Connect(context.Background(), "postgresql://iidy:password@localhost:5432/iidy?pool_max_conns=5")
 	if err != nil {
 		return nil, errors.Wrap(err, "Could not create PgStore")
 	}
@@ -39,7 +42,7 @@ func NewPgStore() (*PgStore, error) {
 // Nuke will destroy every list in the data store.
 // Use with caution.
 func (p *PgStore) Nuke() error {
-	_, err := p.pool.Exec(`truncate table lists`)
+	_, err := p.pool.Exec(context.TODO(), `truncate table lists`)
 	if err != nil {
 		return err
 	}
@@ -49,7 +52,7 @@ func (p *PgStore) Nuke() error {
 // Add adds an item to a list. If the list does not already
 // exist, it will be created.
 func (p *PgStore) Add(list string, item string) (int64, error) {
-	commandTag, err := p.pool.Exec(`
+	commandTag, err := p.pool.Exec(context.TODO(), `
 		insert into lists
 		(list, item)
 		values ($1, $2)`, list, item)
@@ -66,7 +69,7 @@ func (p *PgStore) Add(list string, item string) (int64, error) {
 // to "ok") will be false.
 func (p *PgStore) Get(list string, item string) (int, bool, error) {
 	var attempts int
-	err := p.pool.QueryRow(`
+	err := p.pool.QueryRow(context.TODO(), `
 		select attempts
 		  from lists
 		 where list = $1
@@ -83,7 +86,7 @@ func (p *PgStore) Get(list string, item string) (int, bool, error) {
 // Del deletes an item from a list. The first return value
 // is the number of items found and deleted (1 or 0).
 func (p *PgStore) Del(list string, item string) (int64, error) {
-	commandTag, err := p.pool.Exec(`
+	commandTag, err := p.pool.Exec(context.TODO(), `
 		delete from lists
 		 where list = $1
 		   and item = $2`, list, item)
@@ -97,7 +100,7 @@ func (p *PgStore) Del(list string, item string) (int64, error) {
 // an item from a list. The first return value
 // is the number of items found and incremented (1 or 0).
 func (p *PgStore) Inc(list string, item string) (int64, error) {
-	commandTag, err := p.pool.Exec(`
+	commandTag, err := p.pool.Exec(context.TODO(), `
 		update lists
 		   set attempts = attempts + 1
 		 where list = $1
@@ -127,7 +130,7 @@ func (p *PgStore) BulkAdd(list string, items []string) (int64, error) {
 	var buffer bytes.Buffer
 	buffer.WriteString("insert into lists (list, item) values \n")
 	argNum := 0
-	args := make(pgx.QueryArgs, 0)
+	args := make([]interface{}, 0)
 	lastIndex := len(items) - 1
 	for i, item := range items {
 		buffer.WriteString("($")
@@ -135,17 +138,17 @@ func (p *PgStore) BulkAdd(list string, items []string) (int64, error) {
 		buffer.WriteString(strconv.Itoa(argNum))
 		buffer.WriteString(", ")
 		buffer.WriteString("$")
-		args.Append(list)
+		args = append(args, list)
 		argNum++
 		buffer.WriteString(strconv.Itoa(argNum))
 		buffer.WriteString(")")
 		if i < lastIndex {
 			buffer.WriteString(",\n")
 		}
-		args.Append(item)
+		args = append(args, item)
 	}
 	sql := buffer.String()
-	commandTag, err := p.pool.Exec(sql, args...)
+	commandTag, err := p.pool.Exec(context.TODO(), sql, args...)
 	if err != nil {
 		return 0, err
 	}
@@ -164,7 +167,7 @@ func (p *PgStore) BulkGet(list string, startID string, count int) ([]ListEntry, 
 		return []ListEntry{}, nil
 	}
 	var sql string
-	args := make(pgx.QueryArgs, 0)
+	args := make([]interface{}, 0)
 	if startID == "" {
 		sql = `
 		  select item,
@@ -174,8 +177,8 @@ func (p *PgStore) BulkGet(list string, startID string, count int) ([]ListEntry, 
 		order by list,
 				 item
 		   limit $2`
-		args.Append(list)
-		args.Append(count)
+		args = append(args, list)
+		args = append(args, count)
 	} else {
 		sql = `
 		  select item,
@@ -186,11 +189,11 @@ func (p *PgStore) BulkGet(list string, startID string, count int) ([]ListEntry, 
 		order by list,
 				 item
 		   limit $3`
-		args.Append(list)
-		args.Append(startID)
-		args.Append(count)
+		args = append(args, list)
+		args = append(args, startID)
+		args = append(args, count)
 	}
-	rows, err := p.pool.Query(sql, args...)
+	rows, err := p.pool.Query(context.TODO(), sql, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -231,8 +234,8 @@ func (p *PgStore) BulkDel(list string, items []string) (int64, error) {
 		      where list = $1
 		        and item in (values `)
 	argNum := 1
-	args := make(pgx.QueryArgs, 0)
-	args.Append(list)
+	args := make([]interface{}, 0)
+	args = append(args, list)
 	lastIndex := len(items) - 1
 	for i, item := range items {
 		buffer.WriteString("($")
@@ -241,11 +244,11 @@ func (p *PgStore) BulkDel(list string, items []string) (int64, error) {
 		if i < lastIndex {
 			buffer.WriteString("), ")
 		}
-		args.Append(item)
+		args = append(args, item)
 	}
 	buffer.WriteString("))")
 	sql := buffer.String()
-	commandTag, err := p.pool.Exec(sql, args...)
+	commandTag, err := p.pool.Exec(context.TODO(), sql, args...)
 	if err != nil {
 		return 0, err
 	}
@@ -271,8 +274,8 @@ func (p *PgStore) BulkInc(list string, items []string) (int64, error) {
 	     where list = $1
 	       and item in (values `)
 	argNum := 1
-	args := make(pgx.QueryArgs, 0)
-	args.Append(list)
+	args := make([]interface{}, 0)
+	args = append(args, list)
 	lastIndex := len(items) - 1
 	for i, item := range items {
 		buffer.WriteString("($")
@@ -281,11 +284,11 @@ func (p *PgStore) BulkInc(list string, items []string) (int64, error) {
 		if i < lastIndex {
 			buffer.WriteString("), ")
 		}
-		args.Append(item)
+		args = append(args, item)
 	}
 	buffer.WriteString("))")
 	sql := buffer.String()
-	commandTag, err := p.pool.Exec(sql, args...)
+	commandTag, err := p.pool.Exec(context.TODO(), sql, args...)
 	if err != nil {
 		return 0, err
 	}
