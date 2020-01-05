@@ -2,7 +2,6 @@ language: go
 
 go:
   - 1.x
-  - tip
 
 # Derived from https://github.com/lib/pq/blob/master/.travis.yml
 before_install:
@@ -11,7 +10,6 @@ before_install:
 env:
   global:
     - GO111MODULE=on
-    - PGX_TEST_DATABASE=postgres://pgx_md5:secret@127.0.0.1/pgx_test
 
   matrix:
     - PGVERSION=11
@@ -22,7 +20,3 @@ before_script:
 
 script:
   - ./travis/script.bash
-
-matrix:
-  allow_failures:
-    - go: tip
