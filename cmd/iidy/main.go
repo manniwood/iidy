@@ -17,9 +17,9 @@ func main() {
 		log.Fatalf("Could not connect to data store: %v\n", err)
 	}
 	log.Printf("Connecting to data store with following config:\n%s\n", s)
-	env := &iidy.Env{Store: s}
+	h := &iidy.Handler{Store: s}
 
-	http.Handle("/lists/", iidy.Handler{Env: env, H: iidy.ListHandler})
+	http.Handle("/lists/", h)
 
 	log.Printf("Server starting on port %d\n", port)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
