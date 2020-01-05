@@ -8,38 +8,16 @@ import (
 	"strings"
 )
 
-// The whole way of setting up these structs
-// and the handler so that I can provide access
-// to the Store is inspired by
-// https://elithrar.github.io/article/http-handler-error-handling-revisited/
-
-// Env is a global struct that's only meant to be instantiated
-// once, like a singleton, and passed in to ListHandler so that
-// our handlers have access to the data store.
-type Env struct {
+// Handler handles requests to "/lists/". It contains
+// an instance of PgStore, so that it has a place to store list data.
+type Handler struct {
 	Store *PgStore
 }
 
-// Handler is a struct that takes a pointer to and Env struct
-// and then hands that in to a function that satisfies the
-// http.Handler interface.
-type Handler struct {
-	Env *Env
-	H   func(e *Env, w http.ResponseWriter, r *http.Request)
-}
-
-// ServeHTTP satisfies the http.Handler interface, but
-// actually calls our Handler struct's H function, which
-// has access to our Env "singleton" which holds a pointer
-// to our data store.
-func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	h.H(h.Env, w, r)
-}
-
-// ListHandler is expected to handle all traffic to "/lists/".
-// It parses out the list and item names from the URL and then
-// delegates to more specific handlers.
-func ListHandler(e *Env, w http.ResponseWriter, r *http.Request) {
+// ServeHTTP satisfies the http.Handler interface. It is expected to handle
+// all traffic to "/lists/". It parses out the list and item names
+// from the URL and then delegates to more specific handlers.
+func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// We always deal in plain text, so may as well be explicit about it.
 	w.Header().Set("Content-Type", "text/plain")
 	urlParts := strings.Split(r.URL.Path, "/")
@@ -66,30 +44,30 @@ func ListHandler(e *Env, w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case "PUT":
-		PutHandler(e, w, r, list, item)
+		h.PutHandler(w, r, list, item)
 	case "GET":
-		GetHandler(e, w, r, list, item)
+		h.GetHandler(w, r, list, item)
 	case "INCREMENT":
-		IncHandler(e, w, r, list, item)
+		h.IncHandler(w, r, list, item)
 	case "DELETE":
-		DelHandler(e, w, r, list, item)
+		h.DelHandler(w, r, list, item)
 	case "BULKPUT":
-		BulkPutHandler(e, w, r, list)
+		h.BulkPutHandler(w, r, list)
 	case "BULKGET":
-		BulkGetHandler(e, w, r, list)
+		h.BulkGetHandler(w, r, list)
 	case "BULKINCREMENT":
-		BulkIncHandler(e, w, r, list)
+		h.BulkIncHandler(w, r, list)
 	case "BULKDELETE":
-		BulkDelHandler(e, w, r, list)
+		h.BulkDelHandler(w, r, list)
 	default:
 		http.Error(w, "Unknown method.", http.StatusBadRequest)
 	}
 }
 
 // PutHandler adds an item to a list. If the list does not already
-// exist, it will be created.
-func PutHandler(e *Env, w http.ResponseWriter, r *http.Request, list string, item string) {
-	count, err := e.Store.Add(r.Context(), list, item)
+// exist, the list will be created.
+func (h *Handler) PutHandler(w http.ResponseWriter, r *http.Request, list string, item string) {
+	count, err := h.Store.Add(r.Context(), list, item)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to add list item: %v", err)
 		http.Error(w, errStr, http.StatusInternalServerError)
@@ -100,8 +78,8 @@ func PutHandler(e *Env, w http.ResponseWriter, r *http.Request, list string, ite
 
 // IncHandler increments an item in a list. The returned
 // body text says the number of items found and incremented (1 or 0).
-func IncHandler(e *Env, w http.ResponseWriter, r *http.Request, list string, item string) {
-	count, err := e.Store.Inc(r.Context(), list, item)
+func (h *Handler) IncHandler(w http.ResponseWriter, r *http.Request, list string, item string) {
+	count, err := h.Store.Inc(r.Context(), list, item)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to increment list item: %v", err)
 		http.Error(w, errStr, http.StatusInternalServerError)
@@ -112,8 +90,8 @@ func IncHandler(e *Env, w http.ResponseWriter, r *http.Request, list string, ite
 
 // DelHandler deletes an item from a list. The returned
 // body text says the number of items found and deleted (1 or 0).
-func DelHandler(e *Env, w http.ResponseWriter, r *http.Request, list string, item string) {
-	count, err := e.Store.Del(r.Context(), list, item)
+func (h *Handler) DelHandler(w http.ResponseWriter, r *http.Request, list string, item string) {
+	count, err := h.Store.Del(r.Context(), list, item)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to delete list item: %v", err)
 		http.Error(w, errStr, http.StatusInternalServerError)
@@ -125,8 +103,8 @@ func DelHandler(e *Env, w http.ResponseWriter, r *http.Request, list string, ite
 // GetHandler returns the number of attempts that were made to
 // complete an item in a list. When a list or list item
 // is missing, the client will get a 404 instead.
-func GetHandler(e *Env, w http.ResponseWriter, r *http.Request, list string, item string) {
-	attempts, ok, err := e.Store.Get(r.Context(), list, item)
+func (h *Handler) GetHandler(w http.ResponseWriter, r *http.Request, list string, item string) {
+	attempts, ok, err := h.Store.Get(r.Context(), list, item)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to get list item: %v", err)
 		http.Error(w, errStr, http.StatusInternalServerError)
@@ -151,7 +129,7 @@ func getScrubbedLines(bodyBytes []byte) []string {
 // list, and sets their completion attempt counts to 0.
 // The response contains the number of items successfully
 // inserted, generally len(items) or 0.
-func BulkPutHandler(e *Env, w http.ResponseWriter, r *http.Request, list string) {
+func (h *Handler) BulkPutHandler(w http.ResponseWriter, r *http.Request, list string) {
 	if r.Body == nil {
 		fmt.Fprintf(w, "ADDED 0\n")
 		return
@@ -164,7 +142,7 @@ func BulkPutHandler(e *Env, w http.ResponseWriter, r *http.Request, list string)
 	}
 	items := getScrubbedLines(bodyBytes)
 
-	count, err := e.Store.BulkAdd(r.Context(), list, items)
+	count, err := h.Store.BulkAdd(r.Context(), list, items)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to add list items: %v", err)
 		http.Error(w, errStr, http.StatusInternalServerError)
@@ -183,7 +161,7 @@ func BulkPutHandler(e *Env, w http.ResponseWriter, r *http.Request, list string)
 // beginning of the list; when set to an item (generally the last item
 // from a previous call to this handler) we start after that item in
 // the list.
-func BulkGetHandler(e *Env, w http.ResponseWriter, r *http.Request, list string) {
+func (h *Handler) BulkGetHandler(w http.ResponseWriter, r *http.Request, list string) {
 	startID := r.Header.Get("X-IIDY-After-Item")
 	countStr := r.Header.Get("X-IIDY-Count")
 	if countStr == "" {
@@ -199,7 +177,7 @@ func BulkGetHandler(e *Env, w http.ResponseWriter, r *http.Request, list string)
 	if count == 0 {
 		return
 	}
-	listEntries, err := e.Store.BulkGet(r.Context(), list, startID, count)
+	listEntries, err := h.Store.BulkGet(r.Context(), list, startID, count)
 	if len(listEntries) == 0 {
 		// Nothing found, so we are done!
 		return
@@ -216,7 +194,7 @@ func BulkGetHandler(e *Env, w http.ResponseWriter, r *http.Request, list string)
 // (item names separated by newlines) in the specified
 // list. The response contains the number of items successfully
 // incremented, generally len(items) or 0.
-func BulkIncHandler(e *Env, w http.ResponseWriter, r *http.Request, list string) {
+func (h *Handler) BulkIncHandler(w http.ResponseWriter, r *http.Request, list string) {
 	if r.Body == nil {
 		fmt.Fprintf(w, "INCREMENTED 0\n")
 		return
@@ -229,7 +207,7 @@ func BulkIncHandler(e *Env, w http.ResponseWriter, r *http.Request, list string)
 	}
 	items := getScrubbedLines(bodyBytes)
 
-	count, err := e.Store.BulkInc(r.Context(), list, items)
+	count, err := h.Store.BulkInc(r.Context(), list, items)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to increment list items: %v", err)
 		http.Error(w, errStr, http.StatusInternalServerError)
@@ -242,7 +220,7 @@ func BulkIncHandler(e *Env, w http.ResponseWriter, r *http.Request, list string)
 // (item names separated by newlines) from the specified
 // list. The response contains the number of items successfully
 // deleted, generally len(items) or 0.
-func BulkDelHandler(e *Env, w http.ResponseWriter, r *http.Request, list string) {
+func (h *Handler) BulkDelHandler(w http.ResponseWriter, r *http.Request, list string) {
 	if r.Body == nil {
 		fmt.Fprintf(w, "ADDED 0\n")
 		return
@@ -255,7 +233,7 @@ func BulkDelHandler(e *Env, w http.ResponseWriter, r *http.Request, list string)
 	}
 	items := getScrubbedLines(bodyBytes)
 
-	count, err := e.Store.BulkDel(r.Context(), list, items)
+	count, err := h.Store.BulkDel(r.Context(), list, items)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to delete list items: %v", err)
 		http.Error(w, errStr, http.StatusInternalServerError)
