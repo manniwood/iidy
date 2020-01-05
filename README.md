@@ -1,5 +1,5 @@
 [![](https://godoc.org/github.com/manniwood/iidy?status.svg)](https://godoc.org/github.com/manniwood/iidy)
-[![Build Status](https://travis-ci.org/manniwood/iidy.svg)](https://travis-ci.org/manniwood/iidy)
+[![Build Status](https://travis-ci.com/manniwood/iidy.svg)](https://travis-ci.com/manniwood/iidy)
 
 # IIDY - Is It Done Yet?
 
