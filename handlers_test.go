@@ -151,7 +151,6 @@ func TestIncHandler(t *testing.T) {
 		t.Fatal(err)
 	}
 	rr = httptest.NewRecorder()
-	handler = http.Handler(h)
 	handler.ServeHTTP(rr, req)
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
@@ -204,7 +203,6 @@ func TestDelHandler(t *testing.T) {
 		t.Fatal(err)
 	}
 	rr = httptest.NewRecorder()
-	handler = http.Handler(h)
 	handler.ServeHTTP(rr, req)
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
@@ -254,13 +252,13 @@ robots.txt`)
 	}
 
 	// What if we bulk put nothing?
+	// First, clear the store.
+	h.Store.Nuke(context.Background())
 	req, err = http.NewRequest("BULKPUT", "/lists/downloads", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	rr = httptest.NewRecorder()
-	h = &Handler{Store: getEmptyStore(t)} // XXX: needed?
-	handler = http.Handler(h)             // XXX: needed?
 	handler.ServeHTTP(rr, req)
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
@@ -324,14 +322,6 @@ func TestBulkGetHandler(t *testing.T) {
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
-	/* lastItem := rr.Result().Header.Get("X-IIDY-Last-Item")
-
-	if lastItem != test.lastItem {
-		t.Errorf("handler returned wrong last item: got %v want %v", lastItem, test.lastItem)
-	}
-	if rr.Body.String() != test.want {
-		t.Errorf("handler returned unexpected body: got '%v' want '%v'", rr.Body.String(), test.want)
-	} */
 }
 
 func TestBulkIncHandler(t *testing.T) {
@@ -394,8 +384,6 @@ e`)
 		t.Fatal(err)
 	}
 	rr = httptest.NewRecorder()
-	h = &Handler{Store: s}    // XXX: needed?
-	handler = http.Handler(h) // XXX: needed?
 	handler.ServeHTTP(rr, req)
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
@@ -458,13 +446,13 @@ e`)
 	}
 
 	// What if we bulk delete nothing?
+	// First, clear the store.
+	h.Store.Nuke(context.Background())
 	req, err = http.NewRequest("BULKDELETE", "/lists/downloads", bytes.NewBuffer(body))
 	if err != nil {
 		t.Fatal(err)
 	}
 	rr = httptest.NewRecorder()
-	h = &Handler{Store: getEmptyStore(t)} // XXX needed?
-	handler = http.Handler(h)             // XXX needed?
 	handler.ServeHTTP(rr, req)
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("Wrong status code: got %v want %v", status, http.StatusOK)
