@@ -4,8 +4,19 @@
 
 # IIDY - Is It Done Yet?
 
-IIDY is a simple yet scalable task list with a REST interface and a PostgreSQL
-backend. It is still a little bit proof-of-concept, but it works pretty well.
+IIDY is a little project I set up to play with Go. It's meant to explore ideas
+more than it is meant to be a production-ready product.
+
+IIDY is a simple yet scalable task list (attempt list) with a PostgreSQL
+backend. It also provides a REST API.
+
+The basic problem IIDY wants to solve is to be an attempt list for millions
+or billions of items. An example use case is tracking backing up a few million
+files, where not every attempt will be initially successful. One would want to
+track how many attempts were made per file, in addition to removing files whose
+downloads were successful.
+
+## Setup
 
 To set up IIDY, all that should be required in terms of fetching packages is
 
