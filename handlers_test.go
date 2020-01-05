@@ -15,8 +15,8 @@ func TestPutHandler(t *testing.T) {
 		t.Fatal(err)
 	}
 	rr := httptest.NewRecorder()
-	env := &Env{Store: getEmptyStore(t)}
-	handler := http.Handler(Handler{Env: env, H: ListHandler})
+	h := &Handler{Store: getEmptyStore(t)}
+	handler := http.Handler(h)
 	handler.ServeHTTP(rr, req)
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
@@ -27,7 +27,7 @@ func TestPutHandler(t *testing.T) {
 	}
 
 	// Did we really add the item?
-	_, ok, err := env.Store.Get(context.Background(), "downloads", "kernel.tar.gz")
+	_, ok, err := h.Store.Get(context.Background(), "downloads", "kernel.tar.gz")
 	if err != nil {
 		t.Errorf("Error getting item: %v", err)
 	}
@@ -42,8 +42,8 @@ func TestNonExistentMethod(t *testing.T) {
 		t.Fatal(err)
 	}
 	rr := httptest.NewRecorder()
-	env := &Env{Store: getEmptyStore(t)}
-	handler := http.Handler(Handler{Env: env, H: ListHandler})
+	h := &Handler{Store: getEmptyStore(t)}
+	handler := http.Handler(h)
 	handler.ServeHTTP(rr, req)
 	if status := rr.Code; status != http.StatusBadRequest {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
@@ -55,8 +55,8 @@ func TestNonExistentMethod(t *testing.T) {
 }
 
 func TestGetHandler(t *testing.T) {
-	env := &Env{Store: getEmptyStore(t)}
-	addSingleStartingItem(t, env.Store)
+	h := &Handler{Store: getEmptyStore(t)}
+	addSingleStartingItem(t, h.Store)
 
 	// Can we get an existing value?
 	req, err := http.NewRequest("GET", "/lists/downloads/kernel.tar.gz", nil)
@@ -64,7 +64,7 @@ func TestGetHandler(t *testing.T) {
 		t.Fatal(err)
 	}
 	rr := httptest.NewRecorder()
-	handler := http.Handler(Handler{Env: env, H: ListHandler})
+	handler := http.Handler(h)
 	handler.ServeHTTP(rr, req)
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
@@ -76,8 +76,8 @@ func TestGetHandler(t *testing.T) {
 }
 
 func TestUnhappyHandlerGetScenarios(t *testing.T) {
-	env := &Env{Store: getEmptyStore(t)}
-	addSingleStartingItem(t, env.Store)
+	h := &Handler{Store: getEmptyStore(t)}
+	addSingleStartingItem(t, h.Store)
 
 	// What about getting an item that doesn't exist?
 	req, err := http.NewRequest("GET", "/lists/downloads/i_do_not_exist.tar.gz", nil)
@@ -85,7 +85,7 @@ func TestUnhappyHandlerGetScenarios(t *testing.T) {
 		t.Fatal(err)
 	}
 	rr := httptest.NewRecorder()
-	handler := http.Handler(Handler{Env: env, H: ListHandler})
+	handler := http.Handler(h)
 	handler.ServeHTTP(rr, req)
 	if status := rr.Code; status != http.StatusNotFound {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
@@ -111,8 +111,8 @@ func TestUnhappyHandlerGetScenarios(t *testing.T) {
 }
 
 func TestIncHandler(t *testing.T) {
-	env := &Env{Store: getEmptyStore(t)}
-	addSingleStartingItem(t, env.Store)
+	h := &Handler{Store: getEmptyStore(t)}
+	addSingleStartingItem(t, h.Store)
 
 	// Can we increment the number of attempts for a list item?
 	req, err := http.NewRequest("INCREMENT", "/lists/downloads/kernel.tar.gz", nil)
@@ -120,7 +120,7 @@ func TestIncHandler(t *testing.T) {
 		t.Fatal(err)
 	}
 	rr := httptest.NewRecorder()
-	handler := http.Handler(Handler{Env: env, H: ListHandler})
+	handler := http.Handler(h)
 	handler.ServeHTTP(rr, req)
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
@@ -151,7 +151,6 @@ func TestIncHandler(t *testing.T) {
 		t.Fatal(err)
 	}
 	rr = httptest.NewRecorder()
-	handler = http.Handler(Handler{Env: env, H: ListHandler})
 	handler.ServeHTTP(rr, req)
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
@@ -164,8 +163,8 @@ func TestIncHandler(t *testing.T) {
 }
 
 func TestDelHandler(t *testing.T) {
-	env := &Env{Store: getEmptyStore(t)}
-	addSingleStartingItem(t, env.Store)
+	h := &Handler{Store: getEmptyStore(t)}
+	addSingleStartingItem(t, h.Store)
 
 	// Can we delete our starting value?
 	req, err := http.NewRequest("DELETE", "/lists/downloads/kernel.tar.gz", nil)
@@ -173,7 +172,7 @@ func TestDelHandler(t *testing.T) {
 		t.Fatal(err)
 	}
 	rr := httptest.NewRecorder()
-	handler := http.Handler(Handler{Env: env, H: ListHandler})
+	handler := http.Handler(h)
 	handler.ServeHTTP(rr, req)
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
@@ -204,7 +203,6 @@ func TestDelHandler(t *testing.T) {
 		t.Fatal(err)
 	}
 	rr = httptest.NewRecorder()
-	handler = http.Handler(Handler{Env: env, H: ListHandler})
 	handler.ServeHTTP(rr, req)
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
@@ -233,8 +231,8 @@ robots.txt`)
 		t.Fatal(err)
 	}
 	rr := httptest.NewRecorder()
-	env := &Env{Store: getEmptyStore(t)}
-	handler := http.Handler(Handler{Env: env, H: ListHandler})
+	h := &Handler{Store: getEmptyStore(t)}
+	handler := http.Handler(h)
 	handler.ServeHTTP(rr, req)
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
@@ -245,7 +243,7 @@ robots.txt`)
 	}
 
 	// What if we bulk get what we just bulk put?
-	listEntries, err := env.Store.BulkGet(context.Background(), "downloads", "", 3)
+	listEntries, err := h.Store.BulkGet(context.Background(), "downloads", "", 3)
 	if err != nil {
 		t.Errorf("Error fetching items: %v", err)
 	}
@@ -254,13 +252,13 @@ robots.txt`)
 	}
 
 	// What if we bulk put nothing?
+	// First, clear the store.
+	h.Store.Nuke(context.Background())
 	req, err = http.NewRequest("BULKPUT", "/lists/downloads", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	rr = httptest.NewRecorder()
-	env = &Env{Store: getEmptyStore(t)}
-	handler = http.Handler(Handler{Env: env, H: ListHandler})
 	handler.ServeHTTP(rr, req)
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
@@ -296,8 +294,8 @@ func TestBulkGetHandler(t *testing.T) {
 		}
 		req.Header.Set("X-IIDY-Count", "2")
 		rr := httptest.NewRecorder()
-		env := &Env{Store: s}
-		handler := http.Handler(Handler{Env: env, H: ListHandler})
+		h := &Handler{Store: s}
+		handler := http.Handler(h)
 		handler.ServeHTTP(rr, req)
 		if status := rr.Code; status != http.StatusOK {
 			t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
@@ -318,20 +316,12 @@ func TestBulkGetHandler(t *testing.T) {
 	}
 	req.Header.Set("X-IIDY-Count", "2")
 	rr := httptest.NewRecorder()
-	env := &Env{Store: s}
-	handler := http.Handler(Handler{Env: env, H: ListHandler})
+	h := &Handler{Store: s}
+	handler := http.Handler(h)
 	handler.ServeHTTP(rr, req)
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
-	/* lastItem := rr.Result().Header.Get("X-IIDY-Last-Item")
-
-	if lastItem != test.lastItem {
-		t.Errorf("handler returned wrong last item: got %v want %v", lastItem, test.lastItem)
-	}
-	if rr.Body.String() != test.want {
-		t.Errorf("handler returned unexpected body: got '%v' want '%v'", rr.Body.String(), test.want)
-	} */
 }
 
 func TestBulkIncHandler(t *testing.T) {
@@ -349,8 +339,8 @@ e`)
 		t.Fatal(err)
 	}
 	rr := httptest.NewRecorder()
-	env := &Env{Store: s}
-	handler := http.Handler(Handler{Env: env, H: ListHandler})
+	h := &Handler{Store: s}
+	handler := http.Handler(h)
 	handler.ServeHTTP(rr, req)
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
@@ -394,8 +384,6 @@ e`)
 		t.Fatal(err)
 	}
 	rr = httptest.NewRecorder()
-	env = &Env{Store: s}
-	handler = http.Handler(Handler{Env: env, H: ListHandler})
 	handler.ServeHTTP(rr, req)
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
@@ -421,8 +409,8 @@ e`)
 		t.Fatal(err)
 	}
 	rr := httptest.NewRecorder()
-	env := &Env{Store: s}
-	handler := http.Handler(Handler{Env: env, H: ListHandler})
+	h := &Handler{Store: s}
+	handler := http.Handler(h)
 	handler.ServeHTTP(rr, req)
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("Wrong status code: got %v want %v", status, http.StatusOK)
@@ -458,13 +446,13 @@ e`)
 	}
 
 	// What if we bulk delete nothing?
+	// First, clear the store.
+	h.Store.Nuke(context.Background())
 	req, err = http.NewRequest("BULKDELETE", "/lists/downloads", bytes.NewBuffer(body))
 	if err != nil {
 		t.Fatal(err)
 	}
 	rr = httptest.NewRecorder()
-	env = &Env{Store: s}
-	handler = http.Handler(Handler{Env: env, H: ListHandler})
 	handler.ServeHTTP(rr, req)
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("Wrong status code: got %v want %v", status, http.StatusOK)
