@@ -1,3 +1,6 @@
+[![](https://godoc.org/github.com/manniwood/iidy?status.svg)](https://godoc.org/github.com/manniwood/iidy)
+[![Build Status](https://travis-ci.org/manniwood/iidy.svg)](https://travis-ci.org/manniwood/iidy)
+
 # IIDY - Is It Done Yet?
 
 IIDY is a simple yet scalable task list with a REST interface and a PostgreSQL
@@ -5,8 +8,7 @@ backend. It is still a little bit proof-of-concept, but it works pretty well.
 
 To set up IIDY, all that should be required in terms of fetching packages is
 
-    go get github.com/jackc/pgx
-    go get github.com/manniwood/iidy
+    git clone git@github.com:manniwood/iidy.git
 
 With that done, you need to have PostgreSQL installed an running at localhost:5432.
 [This](https://www.manniwood.com/2017_02_27/postgresql_96_compile_install_howto.html)
@@ -14,12 +16,12 @@ is one way to accomplish that.
 
 With PostgreSQL up and running, set up the iidy PostgreSQL user and database:
 
-    cd $GOPATH/src/github.com/manniwood/iidy/pg_setup
+    cd $WHEREVER_YOU_CHECKED_OUT_IIDY/iidy/pg_setup
     psql -X -U postgres -d postgres -f setup.sql
 
 And now, run IIDY:
 
-    cd $GOPATH/src/github.com/manniwood/iidy/cmd/iidy
+    cd $WHEREVER_YOU_CHECKED_OUT_IIDY/iidy/cmd/iidy
     go build
     ./iidy
 
