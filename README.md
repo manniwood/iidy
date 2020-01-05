@@ -1,5 +1,6 @@
 [![](https://godoc.org/github.com/manniwood/iidy?status.svg)](https://godoc.org/github.com/manniwood/iidy)
 [![Build Status](https://travis-ci.com/manniwood/iidy.svg)](https://travis-ci.com/manniwood/iidy)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 # IIDY - Is It Done Yet?
 
