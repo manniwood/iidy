@@ -9,33 +9,6 @@ import (
 	"testing"
 )
 
-func TestPutHandler(t *testing.T) {
-	req, err := http.NewRequest("PUT", "/lists/downloads/kernel.tar.gz", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	rr := httptest.NewRecorder()
-	h := &Handler{Store: getEmptyStore(t)}
-	handler := http.Handler(h)
-	handler.ServeHTTP(rr, req)
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
-	}
-	expected := "ADDED 1\n"
-	if rr.Body.String() != expected {
-		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
-	}
-
-	// Did we really add the item?
-	_, ok, err := h.Store.Get(context.Background(), "downloads", "kernel.tar.gz")
-	if err != nil {
-		t.Errorf("Error getting item: %v", err)
-	}
-	if !ok {
-		t.Error("Did not properly get item from list.")
-	}
-}
-
 func TestNonExistentMethod(t *testing.T) {
 	req, err := http.NewRequest("BLARG", "/lists/downloads/kernel.tar.gz", nil)
 	if err != nil {
@@ -214,7 +187,7 @@ func TestDelHandler(t *testing.T) {
 
 }
 
-func TestBulkPutHandler(t *testing.T) {
+func TestPutHandler(t *testing.T) {
 	body := []byte(`kernel.tar.gz
 vim.tar.gz
 robots.txt`)
@@ -226,7 +199,7 @@ robots.txt`)
 	}
 
 	// Does bulk put work without errors?
-	req, err := http.NewRequest("BULKPUT", "/lists/downloads", bytes.NewBuffer(body))
+	req, err := http.NewRequest("PUT", "/lists/downloads", bytes.NewBuffer(body))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -254,7 +227,7 @@ robots.txt`)
 	// What if we bulk put nothing?
 	// First, clear the store.
 	h.Store.Nuke(context.Background())
-	req, err = http.NewRequest("BULKPUT", "/lists/downloads", nil)
+	req, err = http.NewRequest("PUT", "/lists/downloads", nil)
 	if err != nil {
 		t.Fatal(err)
 	}

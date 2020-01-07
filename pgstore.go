@@ -90,19 +90,6 @@ func (p *PgStore) Nuke(ctx context.Context) error {
 	return nil
 }
 
-// Add adds an item to a list. If the list does not already exist,
-// it will be created.
-func (p *PgStore) Add(ctx context.Context, list string, item string) (int64, error) {
-	commandTag, err := p.pool.Exec(ctx, `
-		insert into lists
-		(list, item)
-		values ($1, $2)`, list, item)
-	if err != nil {
-		return 0, fmt.Errorf("%v", err)
-	}
-	return commandTag.RowsAffected(), nil
-}
-
 // Get returns the number of attempts that were made to complete an item
 // in a list. When a list or list item is missing, the number of attempts
 // will be returned as 0, but the second return argument (commonly assiged
@@ -152,10 +139,10 @@ func (p *PgStore) Inc(ctx context.Context, list string, item string) (int64, err
 	return commandTag.RowsAffected(), nil
 }
 
-// BulkAdd adds a slice of items (strings) to the specified list, and sets
+// Add adds a slice of items (strings) to the specified list, and sets
 // their completion attempt counts to 0. The first return value is the
 // number of items successfully inserted, generally len(items) or 0.
-func (p *PgStore) BulkAdd(ctx context.Context, list string, items []string) (int64, error) {
+func (p *PgStore) Add(ctx context.Context, list string, items ...string) (int64, error) {
 	if items == nil || len(items) == 0 {
 		return 0, nil
 	}

@@ -27,23 +27,6 @@ func addSingleStartingItem(t *testing.T, s *PgStore) {
 	}
 }
 
-func TestAddAndGet(t *testing.T) {
-	s := getEmptyStore(t)
-	addSingleStartingItem(t, s)
-
-	// Did we really add the item?
-	attempts, ok, err := s.Get(context.Background(), "downloads", "kernel.tar.gz")
-	if err != nil {
-		t.Errorf("Error getting item: %v", err)
-	}
-	if attempts != 0 {
-		t.Error("attempts != 0")
-	}
-	if !ok {
-		t.Error("Did not properly add item to list.")
-	}
-}
-
 func TestUnhappyGetScenarios(t *testing.T) {
 	s := getEmptyStore(t)
 
@@ -151,12 +134,12 @@ func TestInc(t *testing.T) {
 	}
 }
 
-func TestBulkAdd(t *testing.T) {
+func TestAdd(t *testing.T) {
 	s := getEmptyStore(t)
 	files := []string{"kernel.tar.gz", "vim.tar.gz", "robots.txt"}
 
 	// Does bulk add work?
-	count, err := s.BulkAdd(context.Background(), "downloads", files)
+	count, err := s.Add(context.Background(), "downloads", files...)
 	if err != nil {
 		t.Errorf("Error bulk inserting: %v", err)
 	}
@@ -179,7 +162,7 @@ func TestBulkAdd(t *testing.T) {
 	}
 
 	// What if we bulk put nothing?
-	count, err = s.BulkAdd(context.Background(), "downloads", []string{})
+	count, err = s.Add(context.Background(), "downloads", []string{}...)
 	if err != nil {
 		t.Errorf("Error bulk inserting: %v", err)
 	}
@@ -191,9 +174,8 @@ func TestBulkAdd(t *testing.T) {
 // These items are expected to be in the db at the start
 // of the next few bulk tests.
 func bulkAddTestItems(t *testing.T, s *PgStore) {
-	// Bulk add a bunch of test items.
-	files := []string{"a", "b", "c", "d", "e", "f", "g"}
-	count, err := s.BulkAdd(context.Background(), "downloads", files)
+	// Add a bunch of test items.
+	count, err := s.Add(context.Background(), "downloads", "a", "b", "c", "d", "e", "f", "g")
 	if err != nil {
 		t.Errorf("Error bulk inserting: %v", err)
 	}

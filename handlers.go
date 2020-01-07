@@ -25,14 +25,14 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var list string
 	var item string
 	switch r.Method {
-	case "PUT", "GET", "INCREMENT", "DELETE":
+	case "GET", "INCREMENT", "DELETE":
 		if len(urlParts) != 4 {
 			http.Error(w, "Bad request; needs to look like /lists/<listname>/<itemname>", http.StatusBadRequest)
 			return
 		}
 		list = urlParts[2]
 		item = urlParts[3]
-	case "BULKPUT", "BULKGET", "BULKINCREMENT", "BULKDELETE":
+	case "PUT", "BULKGET", "BULKINCREMENT", "BULKDELETE":
 		if len(urlParts) != 3 {
 			http.Error(w, "Bad request; needs to look like /lists/<listname>", http.StatusBadRequest)
 			return
@@ -45,15 +45,13 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case "PUT":
-		h.PutHandler(w, r, list, item)
+		h.PutHandler(w, r, list)
 	case "GET":
 		h.GetHandler(w, r, list, item)
 	case "INCREMENT":
 		h.IncHandler(w, r, list, item)
 	case "DELETE":
 		h.DelHandler(w, r, list, item)
-	case "BULKPUT":
-		h.BulkPutHandler(w, r, list)
 	case "BULKGET":
 		h.BulkGetHandler(w, r, list)
 	case "BULKINCREMENT":
@@ -63,18 +61,6 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	default:
 		http.Error(w, "Unknown method.", http.StatusBadRequest)
 	}
-}
-
-// PutHandler adds an item to a list. If the list does not already exist,
-// the list will be created.
-func (h *Handler) PutHandler(w http.ResponseWriter, r *http.Request, list string, item string) {
-	count, err := h.Store.Add(r.Context(), list, item)
-	if err != nil {
-		errStr := fmt.Sprintf("Error trying to add list item: %v", err)
-		http.Error(w, errStr, http.StatusInternalServerError)
-		return
-	}
-	fmt.Fprintf(w, "ADDED %d\n", count)
 }
 
 // IncHandler increments an item in a list. The returned body text reports
@@ -125,11 +111,11 @@ func getScrubbedLines(bodyBytes []byte) []string {
 	return strings.Split(bodyString, "\n")
 }
 
-// BulkPutHandler adds all of the items in the request body (item names
+// PutHandler adds all of the items in the request body (item names
 // separated by newlines) to the specified list, and sets their completion
 // attempt counts to 0. The response contains the number of items successfully
 // inserted, generally len(items) or 0.
-func (h *Handler) BulkPutHandler(w http.ResponseWriter, r *http.Request, list string) {
+func (h *Handler) PutHandler(w http.ResponseWriter, r *http.Request, list string) {
 	if r.Body == nil {
 		fmt.Fprintf(w, "ADDED 0\n")
 		return
@@ -142,7 +128,7 @@ func (h *Handler) BulkPutHandler(w http.ResponseWriter, r *http.Request, list st
 	}
 	items := getScrubbedLines(bodyBytes)
 
-	count, err := h.Store.BulkAdd(r.Context(), list, items)
+	count, err := h.Store.Add(r.Context(), list, items...)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to add list items: %v", err)
 		http.Error(w, errStr, http.StatusInternalServerError)
