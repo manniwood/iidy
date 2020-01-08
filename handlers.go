@@ -149,13 +149,15 @@ func (h *Handler) GetHandler(w http.ResponseWriter, r *http.Request, list string
 	attempts, ok, err := h.Store.Get(r.Context(), list, item)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to get list item: %v", err)
-		http.Error(w, errStr, http.StatusInternalServerError)
+		printError(w, r, &ErrorMessage{Error: errStr}, http.StatusInternalServerError)
 		return
 	}
 	if !ok {
-		http.Error(w, "Not found.", http.StatusNotFound)
+		printError(w, r, &ErrorMessage{Error: "Not found."}, http.StatusNotFound)
 		return
 	}
+	// NOTE: taking advantage of the fact that a bare number is valid
+	// text/plain as well as valid JSON!
 	fmt.Fprintf(w, "%d\n", attempts)
 }
 
@@ -178,18 +180,20 @@ func (h *Handler) BulkPutHandler(w http.ResponseWriter, r *http.Request, list st
 	bodyBytes, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		errStr := fmt.Sprintf("Error reading body: %v", err)
-		http.Error(w, errStr, http.StatusBadRequest)
+		printError(w, r, &ErrorMessage{Error: errStr}, http.StatusBadRequest)
 		return
 	}
+	// XXX: Oh, wait; we need a way to parse this regardless if it is
+	// text/plain or application/json
 	items := getScrubbedLines(bodyBytes)
 
 	count, err := h.Store.BulkAdd(r.Context(), list, items)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to add list items: %v", err)
-		http.Error(w, errStr, http.StatusInternalServerError)
+		printError(w, r, &ErrorMessage{Error: errStr}, http.StatusInternalServerError)
 		return
 	}
-	fmt.Fprintf(w, "ADDED %d\n", count)
+	printSuccess(w, r, &AddedMessage{Added: count})
 }
 
 // BulkGetHandler requires the "X-IIDY-Count" header, and takes an optional
@@ -205,13 +209,14 @@ func (h *Handler) BulkGetHandler(w http.ResponseWriter, r *http.Request, list st
 	startID := r.Header.Get("X-IIDY-After-Item")
 	countStr := r.Header.Get("X-IIDY-Count")
 	if countStr == "" {
-		http.Error(w, "Header not found: X-IIDY-Count", http.StatusBadRequest)
+		printError(w, r, &ErrorMessage{Error: "Header not found: X-IIDY-Count"},
+			http.StatusBadRequest)
 		return
 	}
 	count, err := strconv.Atoi(countStr)
 	if err != nil {
 		errStr := fmt.Sprintf("For header X-IIDY-Count, %v is not a number: %v", countStr, err)
-		http.Error(w, errStr, http.StatusInternalServerError)
+		printError(w, r, &ErrorMessage{Error: errStr}, http.StatusInternalServerError)
 		return
 	}
 	if count == 0 {
@@ -225,6 +230,8 @@ func (h *Handler) BulkGetHandler(w http.ResponseWriter, r *http.Request, list st
 	// Although the client can parse out the last item from the body,
 	// as a convenience, also provide the last item in a header.
 	w.Header().Set("X-IIDY-Last-Item", listEntries[len(listEntries)-1].Item)
+	// XXX START HERE: Need a way to send this as JSON as well as the text/plain
+	// we are sending here.
 	for _, listItem := range listEntries {
 		fmt.Fprintf(w, "%s %d\n", listItem.Item, listItem.Attempts)
 	}
@@ -244,6 +251,8 @@ func (h *Handler) BulkIncHandler(w http.ResponseWriter, r *http.Request, list st
 		http.Error(w, errStr, http.StatusBadRequest)
 		return
 	}
+	// XXX: Oh, wait; we need a way to parse this regardless if it is
+	// text/plain or application/json
 	items := getScrubbedLines(bodyBytes)
 
 	count, err := h.Store.BulkInc(r.Context(), list, items)
@@ -269,6 +278,8 @@ func (h *Handler) BulkDelHandler(w http.ResponseWriter, r *http.Request, list st
 		http.Error(w, errStr, http.StatusBadRequest)
 		return
 	}
+	// XXX: Oh, wait; we need a way to parse this regardless if it is
+	// text/plain or application/json
 	items := getScrubbedLines(bodyBytes)
 
 	count, err := h.Store.BulkDel(r.Context(), list, items)
