@@ -1,12 +1,47 @@
 package iidy
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strconv"
 	"strings"
 )
+
+const FinalContentTypeKey string = "final Content-Type"
+
+// HandledContentTypes are the content types handled
+// by this service.
+var HandledContentTypes = map[string]struct{}{
+	"text/plain":       struct{}{},
+	"application/json": struct{}{},
+}
+
+// ErrorMessage holds an error that can be sent to the client either as
+// plain text or JSON.
+type ErrorMessage struct {
+	Error string `json:"error"`
+}
+
+// AddedMessage informs the user how many items were added to a list.
+// The message can be formatted either as plain text or JSON.
+type AddedMessage struct {
+	Added int64 `json:"added"`
+}
+
+// IncrementedMessage informs the user how many items were incremented in a list.
+// The message can be formatted either as plain text or JSON.
+type IncrementedMessage struct {
+	Incremented int64 `json:"incremented"`
+}
+
+// DeletedMessage informs the user how many items were deleted from a list.
+// The message can be formatted either as plain text or JSON.
+type DeletedMessage struct {
+	Deleted int64 `json:"deleted"`
+}
 
 // Handler handles requests to "/lists/". It contains an instance of PgStore,
 // so that it has a place to store list data.
@@ -19,8 +54,14 @@ type Handler struct {
 // from the URL and then delegates to more specific handlers depending on
 // the request method.
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// We always deal in plain text, so may as well be explicit about it.
-	w.Header().Set("Content-Type", "text/plain")
+	contentType := r.Header.Get("Content-Type")
+	_, ok := HandledContentTypes[contentType]
+	if contentType == "" || !ok {
+		contentType = "text/plain"
+	}
+	r = r.WithContext(context.WithValue(r.Context(), FinalContentTypeKey, contentType))
+
+	w.Header().Set("X-Content-Type-Options", "nosniff")
 	urlParts := strings.Split(r.URL.Path, "/")
 	var list string
 	var item string
@@ -71,10 +112,10 @@ func (h *Handler) PutHandler(w http.ResponseWriter, r *http.Request, list string
 	count, err := h.Store.Add(r.Context(), list, item)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to add list item: %v", err)
-		http.Error(w, errStr, http.StatusInternalServerError)
+		printError(w, r, &ErrorMessage{Error: errStr}, http.StatusInternalServerError)
 		return
 	}
-	fmt.Fprintf(w, "ADDED %d\n", count)
+	printSuccess(w, r, &AddedMessage{Added: count})
 }
 
 // IncHandler increments an item in a list. The returned body text reports
@@ -83,10 +124,10 @@ func (h *Handler) IncHandler(w http.ResponseWriter, r *http.Request, list string
 	count, err := h.Store.Inc(r.Context(), list, item)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to increment list item: %v", err)
-		http.Error(w, errStr, http.StatusInternalServerError)
+		printError(w, r, &ErrorMessage{Error: errStr}, http.StatusInternalServerError)
 		return
 	}
-	fmt.Fprintf(w, "INCREMENTED %d\n", count)
+	printSuccess(w, r, &IncrementedMessage{Incremented: count})
 }
 
 // DelHandler deletes an item from a list. The returned body text reports
@@ -95,10 +136,10 @@ func (h *Handler) DelHandler(w http.ResponseWriter, r *http.Request, list string
 	count, err := h.Store.Del(r.Context(), list, item)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to delete list item: %v", err)
-		http.Error(w, errStr, http.StatusInternalServerError)
+		printError(w, r, &ErrorMessage{Error: errStr}, http.StatusInternalServerError)
 		return
 	}
-	fmt.Fprintf(w, "DELETED %d\n", count)
+	printSuccess(w, r, &DeletedMessage{Deleted: count})
 }
 
 // GetHandler returns the number of attempts that were made to complete
@@ -237,4 +278,47 @@ func (h *Handler) BulkDelHandler(w http.ResponseWriter, r *http.Request, list st
 		return
 	}
 	fmt.Fprintf(w, "DELETED %d\n", count)
+}
+
+func printError(w http.ResponseWriter, r *http.Request, e *ErrorMessage, code int) {
+	contentType := r.Context().Value(FinalContentTypeKey)
+	if contentType == "application/json" {
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(code)
+		err := json.NewEncoder(w).Encode(e)
+		if err != nil {
+			fmt.Printf("Encountered error %v and could not even encode to JSON: %v",
+				e, err)
+		}
+	} else {
+		http.Error(w, e.Error, code)
+	}
+	return
+}
+
+func printSuccess(w http.ResponseWriter, r *http.Request, v interface{}) {
+	contentType := r.Context().Value(FinalContentTypeKey)
+	if contentType == "application/json" {
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		err := json.NewEncoder(w).Encode(v)
+		if err != nil {
+			fmt.Printf("Could not even encode to JSON: %v", v)
+		}
+	} else {
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		switch v.(type) {
+		case *AddedMessage:
+			m := v.(*AddedMessage)
+			fmt.Fprintf(w, "ADDED %d\n", m.Added)
+		case *IncrementedMessage:
+			m := v.(*IncrementedMessage)
+			fmt.Fprintf(w, "INCREMENTED %d\n", m.Incremented)
+		case *DeletedMessage:
+			m := v.(*DeletedMessage)
+			fmt.Fprintf(w, "DELETED %d\n", m.Deleted)
+		default:
+			fmt.Printf("Could not determine type of: %v", v)
+		}
+	}
+	return
 }
