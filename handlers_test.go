@@ -349,6 +349,67 @@ func TestBulkGetHandler(t *testing.T) {
 	}
 }
 
+func TestBulkGetHandlerJSON(t *testing.T) {
+	s := getEmptyStore(t)
+	bulkAddTestItems(t, s)
+
+	// Can we bulk get the test items in batches of 2?
+	var tests = []struct {
+		afterItem string
+		want      string
+		lastItem  string
+	}{
+		{"", `{"listentries":[{"item":"a","attempts":0},{"item":"b","attempts":0}]}
+`, "b"},
+		{"b", `{"listentries":[{"item":"c","attempts":0},{"item":"d","attempts":0}]}
+`, "d"},
+		{"d", `{"listentries":[{"item":"e","attempts":0},{"item":"f","attempts":0}]}
+`, "f"},
+		{"f", `{"listentries":[{"item":"g","attempts":0}]}
+`, "g"},
+	}
+	for _, test := range tests {
+		req, err := http.NewRequest("BULKGET", "/lists/downloads", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if test.afterItem != "" {
+			req.Header.Set("X-IIDY-After-Item", test.afterItem)
+		}
+		req.Header.Set("X-IIDY-Count", "2")
+		req.Header.Set("Content-Type", "application/json")
+		rr := httptest.NewRecorder()
+		h := &Handler{Store: s}
+		handler := http.Handler(h)
+		handler.ServeHTTP(rr, req)
+		if status := rr.Code; status != http.StatusOK {
+			t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+		}
+		lastItem := rr.Result().Header.Get("X-IIDY-Last-Item")
+		if lastItem != test.lastItem {
+			t.Errorf("handler returned wrong last item: got %v want %v", lastItem, test.lastItem)
+		}
+		if rr.Body.String() != test.want {
+			t.Errorf("handler returned unexpected body: got '%v' want '%v'", rr.Body.String(), test.want)
+		}
+	}
+
+	// What if we bulk get from a list that doesn't exist?
+	req, err := http.NewRequest("BULKGET", "/lists/i_do_not_exist", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("X-IIDY-Count", "2")
+	req.Header.Set("Content-Type", "application/json")
+	rr := httptest.NewRecorder()
+	h := &Handler{Store: s}
+	handler := http.Handler(h)
+	handler.ServeHTTP(rr, req)
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
+}
+
 func TestBulkIncHandler(t *testing.T) {
 	s := getEmptyStore(t)
 	bulkAddTestItems(t, s)

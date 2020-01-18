@@ -49,6 +49,12 @@ type ItemListMessage struct {
 	Items []string `json:"items"`
 }
 
+// ListEntryMessage is a list of entries and their attempts that we
+// serialize/deserialize to/from JSON when using application/json
+type ListEntryMessage struct {
+	ListEntries []ListEntry `json:"listentries"`
+}
+
 // Handler handles requests to "/lists/". It contains an instance of PgStore,
 // so that it has a place to store list data.
 type Handler struct {
@@ -211,7 +217,7 @@ func (h *Handler) BulkPutHandler(w http.ResponseWriter, r *http.Request, list st
 	}
 	items, err := getItemsFromBody(fmt.Sprintf("%s", r.Context().Value(FinalContentTypeKey)), bodyBytes)
 	if err != nil {
-		errStr := fmt.Sprintf("XXX Error trying to parse list of items from request body: %v", err)
+		errStr := fmt.Sprintf("Error trying to parse list of items from request body: %v", err)
 		printError(w, r, &ErrorMessage{Error: errStr}, http.StatusInternalServerError)
 		return
 	}
@@ -259,11 +265,7 @@ func (h *Handler) BulkGetHandler(w http.ResponseWriter, r *http.Request, list st
 	// Although the client can parse out the last item from the body,
 	// as a convenience, also provide the last item in a header.
 	w.Header().Set("X-IIDY-Last-Item", listEntries[len(listEntries)-1].Item)
-	// XXX START HERE: Need a way to send this as JSON as well as the text/plain
-	// we are sending here.
-	for _, listItem := range listEntries {
-		fmt.Fprintf(w, "%s %d\n", listItem.Item, listItem.Attempts)
-	}
+	printListEntries(w, r, listEntries)
 }
 
 // BulkIncHandler increments all of the items in the request body (item names
@@ -318,6 +320,22 @@ func (h *Handler) BulkDelHandler(w http.ResponseWriter, r *http.Request, list st
 		return
 	}
 	fmt.Fprintf(w, "DELETED %d\n", count)
+}
+
+func printListEntries(w http.ResponseWriter, r *http.Request, listEntries []ListEntry) {
+	contentType := r.Context().Value(FinalContentTypeKey)
+	if contentType == "application/json" {
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		err := json.NewEncoder(w).Encode(&ListEntryMessage{ListEntries: listEntries})
+		if err != nil {
+			fmt.Printf("Could not encode list entries to JSON: %v", err)
+		}
+	} else {
+		for _, listItem := range listEntries {
+			fmt.Fprintf(w, "%s %d\n", listItem.Item, listItem.Attempts)
+		}
+	}
+	return
 }
 
 func printError(w http.ResponseWriter, r *http.Request, e *ErrorMessage, code int) {

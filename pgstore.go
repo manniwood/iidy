@@ -26,8 +26,8 @@ const DefaultConnectionURL string = "postgresql://iidy:password@localhost:5432/i
 // ListEntry is a list item and the number of times an attempt has been
 // made to complete it.
 type ListEntry struct {
-	Item     string
-	Attempts int
+	Item     string `json:"item"`
+	Attempts int    `json:"attempts"`
 }
 
 // PgStore is the backend store where lists and list items are kept.
