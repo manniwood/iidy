@@ -214,59 +214,87 @@ func TestDelHandler(t *testing.T) {
 
 }
 
-// XXX: need a way to test JSON version of this
 func TestBulkPutHandler(t *testing.T) {
-	body := []byte(`kernel.tar.gz
+	var tests = []struct {
+		mime            string
+		body            []byte
+		expectAfterAdd  string
+		expected        []ListEntry
+		expectAfter0Add string
+	}{
+		{
+			mime: "text/plain",
+			body: []byte(`kernel.tar.gz
 vim.tar.gz
-robots.txt`)
-	// remember, these come back in alphabetical order
-	expected := []ListEntry{
-		{"kernel.tar.gz", 0},
-		{"robots.txt", 0},
-		{"vim.tar.gz", 0},
+robots.txt`),
+			expectAfterAdd: "ADDED 3\n",
+			// remember, these come back in alphabetical order
+			expected: []ListEntry{
+				{"kernel.tar.gz", 0},
+				{"robots.txt", 0},
+				{"vim.tar.gz", 0},
+			},
+			expectAfter0Add: "ADDED 0\n",
+		},
+		{
+			mime: "application/json",
+			body: []byte(`{ "items": ["kernel.tar.gz", "vim.tar.gz", "robots.txt"] }`),
+			expectAfterAdd: `{"added":3}
+`,
+			// remember, these come back in alphabetical order
+			expected: []ListEntry{
+				{"kernel.tar.gz", 0},
+				{"robots.txt", 0},
+				{"vim.tar.gz", 0},
+			},
+			expectAfter0Add: `{"added":0}
+`,
+		},
 	}
 
-	// Does bulk put work without errors?
-	req, err := http.NewRequest("BULKPUT", "/lists/downloads", bytes.NewBuffer(body))
-	if err != nil {
-		t.Fatal(err)
-	}
-	rr := httptest.NewRecorder()
-	h := &Handler{Store: getEmptyStore(t)}
-	handler := http.Handler(h)
-	handler.ServeHTTP(rr, req)
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
-	}
-	expectedBody := "ADDED 3\n"
-	if rr.Body.String() != expectedBody {
-		t.Errorf("Unexpected body: got %v want %v", rr.Body.String(), expectedBody)
-	}
+	for _, test := range tests {
+		// Does bulk put work without errors?
+		req, err := http.NewRequest("BULKPUT", "/lists/downloads", bytes.NewBuffer(test.body))
+		if err != nil {
+			t.Fatal(err)
+		}
+		req.Header.Set("Content-Type", test.mime)
+		rr := httptest.NewRecorder()
+		h := &Handler{Store: getEmptyStore(t)}
+		handler := http.Handler(h)
+		handler.ServeHTTP(rr, req)
+		if status := rr.Code; status != http.StatusOK {
+			t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+		}
+		if rr.Body.String() != test.expectAfterAdd {
+			t.Errorf(`Unexpected body: got "%v" want "%v"`, rr.Body.String(), test.expectAfterAdd)
+		}
 
-	// What if we bulk get what we just bulk put?
-	listEntries, err := h.Store.BulkGet(context.Background(), "downloads", "", 3)
-	if err != nil {
-		t.Errorf("Error fetching items: %v", err)
-	}
-	if !reflect.DeepEqual(expected, listEntries) {
-		t.Errorf("Expected %v; got %v", expected, listEntries)
-	}
+		// What if we bulk get what we just bulk put?
+		listEntries, err := h.Store.BulkGet(context.Background(), "downloads", "", 3)
+		if err != nil {
+			t.Errorf("Error fetching items: %v", err)
+		}
+		if !reflect.DeepEqual(test.expected, listEntries) {
+			t.Errorf("Expected %v; got %v", test.expected, listEntries)
+		}
 
-	// What if we bulk put nothing?
-	// First, clear the store.
-	h.Store.Nuke(context.Background())
-	req, err = http.NewRequest("BULKPUT", "/lists/downloads", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	rr = httptest.NewRecorder()
-	handler.ServeHTTP(rr, req)
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
-	}
-	expectedBody = "ADDED 0\n"
-	if rr.Body.String() != expectedBody {
-		t.Errorf("Unexpected body: got %v want %v", rr.Body.String(), expectedBody)
+		// What if we bulk put nothing?
+		// First, clear the store.
+		h.Store.Nuke(context.Background())
+		req, err = http.NewRequest("BULKPUT", "/lists/downloads", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		req.Header.Set("Content-Type", test.mime)
+		rr = httptest.NewRecorder()
+		handler.ServeHTTP(rr, req)
+		if status := rr.Code; status != http.StatusOK {
+			t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+		}
+		if rr.Body.String() != test.expectAfter0Add {
+			t.Errorf(`Unexpected body: got "%v" want "%v"`, rr.Body.String(), test.expectAfter0Add)
+		}
 	}
 }
 

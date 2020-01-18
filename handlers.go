@@ -197,7 +197,7 @@ func getScrubbedLines(bodyBytes []byte) []string {
 // inserted, generally len(items) or 0.
 func (h *Handler) BulkPutHandler(w http.ResponseWriter, r *http.Request, list string) {
 	if r.Body == nil {
-		fmt.Fprintf(w, "ADDED 0\n")
+		printSuccess(w, r, &AddedMessage{Added: 0})
 		return
 	}
 	bodyBytes, err := ioutil.ReadAll(r.Body)
