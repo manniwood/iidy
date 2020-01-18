@@ -169,6 +169,9 @@ func (h *Handler) GetHandler(w http.ResponseWriter, r *http.Request, list string
 }
 
 func getItemsFromBody(contentType string, bodyBytes []byte) ([]string, error) {
+	if bodyBytes == nil || len(bodyBytes) == 0 {
+		return nil, nil
+	}
 	if contentType == "application/json" {
 		return getItemsFromJSON(bodyBytes)
 	}
@@ -208,7 +211,7 @@ func (h *Handler) BulkPutHandler(w http.ResponseWriter, r *http.Request, list st
 	}
 	items, err := getItemsFromBody(fmt.Sprintf("%s", r.Context().Value(FinalContentTypeKey)), bodyBytes)
 	if err != nil {
-		errStr := fmt.Sprintf("Error trying to parse list of items from request body: %v", err)
+		errStr := fmt.Sprintf("XXX Error trying to parse list of items from request body: %v", err)
 		printError(w, r, &ErrorMessage{Error: errStr}, http.StatusInternalServerError)
 		return
 	}
