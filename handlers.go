@@ -43,6 +43,12 @@ type DeletedMessage struct {
 	Deleted int64 `json:"deleted"`
 }
 
+// ItemListMessage is a list of items that we serialize/deserialize
+// to/from JSON when using application/json
+type ItemListMessage struct {
+	Items []string `json:"items"`
+}
+
 // Handler handles requests to "/lists/". It contains an instance of PgStore,
 // so that it has a place to store list data.
 type Handler struct {
@@ -73,6 +79,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		list = urlParts[2]
 		item = urlParts[3]
+		// TODO: maybe just to bulk handling based on whether or not there is a body
 	case "BULKPUT", "BULKGET", "BULKINCREMENT", "BULKDELETE":
 		if len(urlParts) != 3 {
 			http.Error(w, "Bad request; needs to look like /lists/<listname>", http.StatusBadRequest)
@@ -161,6 +168,22 @@ func (h *Handler) GetHandler(w http.ResponseWriter, r *http.Request, list string
 	fmt.Fprintf(w, "%d\n", attempts)
 }
 
+func getItemsFromBody(contentType string, bodyBytes []byte) ([]string, error) {
+	if contentType == "application/json" {
+		return getItemsFromJSON(bodyBytes)
+	}
+	return getScrubbedLines(bodyBytes), nil
+}
+
+func getItemsFromJSON(bodyBytes []byte) ([]string, error) {
+	var msg *ItemListMessage
+	err := json.Unmarshal(bodyBytes, &msg)
+	if err != nil {
+		return nil, err
+	}
+	return msg.Items, nil
+}
+
 func getScrubbedLines(bodyBytes []byte) []string {
 	bodyString := string(bodyBytes[:])
 	// be nice and trim leading and trailing space from body first.
@@ -183,9 +206,12 @@ func (h *Handler) BulkPutHandler(w http.ResponseWriter, r *http.Request, list st
 		printError(w, r, &ErrorMessage{Error: errStr}, http.StatusBadRequest)
 		return
 	}
-	// XXX: Oh, wait; we need a way to parse this regardless if it is
-	// text/plain or application/json
-	items := getScrubbedLines(bodyBytes)
+	items, err := getItemsFromBody(fmt.Sprintf("%s", r.Context().Value(FinalContentTypeKey)), bodyBytes)
+	if err != nil {
+		errStr := fmt.Sprintf("Error trying to parse list of items from request body: %v", err)
+		printError(w, r, &ErrorMessage{Error: errStr}, http.StatusInternalServerError)
+		return
+	}
 
 	count, err := h.Store.BulkAdd(r.Context(), list, items)
 	if err != nil {

@@ -214,6 +214,7 @@ func TestDelHandler(t *testing.T) {
 
 }
 
+// XXX: need a way to test JSON version of this
 func TestBulkPutHandler(t *testing.T) {
 	body := []byte(`kernel.tar.gz
 vim.tar.gz
