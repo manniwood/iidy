@@ -9,6 +9,9 @@ import (
 	"testing"
 )
 
+// TODO: any json response bodies should probably be parsed into
+// structs and deep equalled.
+
 func TestPutHandler(t *testing.T) {
 	req, err := http.NewRequest("PUT", "/lists/downloads/kernel.tar.gz", nil)
 	if err != nil {
@@ -503,70 +506,114 @@ func TestBulkIncHandlerError(t *testing.T) {
 }
 
 func TestBulkDelHandler(t *testing.T) {
-	s := getEmptyStore(t)
-	bulkAddTestItems(t, s)
-
-	// Can we bulk delete some of the items?
-	body := []byte(`a
+	var tests = []struct {
+		name     string
+		mime     string
+		body     []byte
+		expected string
+	}{
+		{
+			name: "text",
+			mime: "text/plain",
+			body: []byte(`a
 b
 c
 d
-e`)
-	req, err := http.NewRequest("BULKDELETE", "/lists/downloads", bytes.NewBuffer(body))
-	if err != nil {
-		t.Fatal(err)
+e`),
+			expected: "DELETED 5\n",
+		},
+		{
+			name: "JSON",
+			mime: "application/json",
+			body: []byte(`{ "items": ["a", "b", "c", "d", "e"] }`),
+			expected: `{"deleted":5}
+`,
+		},
 	}
-	rr := httptest.NewRecorder()
-	h := &Handler{Store: s}
-	handler := http.Handler(h)
-	handler.ServeHTTP(rr, req)
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("Wrong status code: got %v want %v", status, http.StatusOK)
-	}
-	expected := "DELETED 5\n"
-	if rr.Body.String() != expected {
-		t.Errorf("Unexpected body: got %v want %v", rr.Body.String(), expected)
-	}
+	for _, test := range tests {
+		s := getEmptyStore(t)
+		bulkAddTestItems(t, s)
 
-	// If we look for the deleted items, are they correctly missing?
-	for _, file := range []string{"a", "b", "c", "d", "e"} {
-		_, ok, err := s.Get(context.Background(), "downloads", file)
+		req, err := http.NewRequest("BULKDELETE", "/lists/downloads", bytes.NewBuffer(test.body))
 		if err != nil {
-			t.Errorf("Error getting item: %v", err)
+			t.Fatal(err)
 		}
-		if ok {
-			t.Errorf("Found item %v that should have been deleted from list.", file)
+		req.Header.Set("Content-Type", test.mime)
+		rr := httptest.NewRecorder()
+		h := &Handler{Store: s}
+		handler := http.Handler(h)
+		handler.ServeHTTP(rr, req)
+		if status := rr.Code; status != http.StatusOK {
+			t.Errorf("%s: handler returned wrong status code: got %v want %v", test.name, status, http.StatusOK)
+		}
+		if rr.Body.String() != test.expected {
+			t.Errorf("%s: handler returned unexpected body: got %v want %v", test.name, rr.Body.String(), test.expected)
+		}
+
+		// If we look for the deleted items, are they correctly missing?
+		for _, file := range []string{"a", "b", "c", "d", "e"} {
+			_, ok, err := s.Get(context.Background(), "downloads", file)
+			if err != nil {
+				t.Errorf("%s: Error getting item: %v", test.name, err)
+			}
+			if ok {
+				t.Errorf("%s: Found item %v that should have been deleted from list.", test.name, file)
+			}
+		}
+
+		// Were other items left alone?
+		for _, file := range []string{"f", "g"} {
+			attempts, ok, err := s.Get(context.Background(), "downloads", file)
+			if err != nil {
+				t.Errorf("%s: Error getting item: %v", test.name, err)
+			}
+			if !ok {
+				t.Errorf("%s: Item %v should not have been deleted from list.", test.name, file)
+			}
+			if attempts != 0 {
+				t.Errorf("%s: Item %v is incorrectly incremented.", test.name, file)
+			}
 		}
 	}
+}
 
-	// Were other items left alone?
-	for _, file := range []string{"f", "g"} {
-		attempts, ok, err := s.Get(context.Background(), "downloads", file)
+func TestBulkDelHandlerError(t *testing.T) {
+	var tests = []struct {
+		name     string
+		mime     string
+		expected string
+	}{
+		{
+			name:     "text",
+			mime:     "text/plain",
+			expected: "DELETED 0\n",
+		},
+		{
+			name: "JSON",
+			mime: "application/json",
+			expected: `{"deleted":0}
+`,
+		},
+	}
+	for _, test := range tests {
+		s := getEmptyStore(t)
+		h := &Handler{Store: s}
+		// What if we bulk delete nothing?
+		// First, clear the store.
+		h.Store.Nuke(context.Background())
+		req, err := http.NewRequest("BULKDELETE", "/lists/downloads", nil)
 		if err != nil {
-			t.Errorf("Error getting item: %v", err)
+			t.Fatal(err)
 		}
-		if !ok {
-			t.Errorf("Item %v should not have been deleted from list.", file)
+		req.Header.Set("Content-Type", test.mime)
+		rr := httptest.NewRecorder()
+		handler := http.Handler(h)
+		handler.ServeHTTP(rr, req)
+		if status := rr.Code; status != http.StatusOK {
+			t.Errorf("%s: Wrong status code: got %v want %v", test.name, status, http.StatusOK)
 		}
-		if attempts != 0 {
-			t.Errorf("Item %v is incorrectly incremented.", file)
+		if rr.Body.String() != test.expected {
+			t.Errorf("%s: Unexpected body: got %v want %v", test.name, rr.Body.String(), test.expected)
 		}
-	}
-
-	// What if we bulk delete nothing?
-	// First, clear the store.
-	h.Store.Nuke(context.Background())
-	req, err = http.NewRequest("BULKDELETE", "/lists/downloads", bytes.NewBuffer(body))
-	if err != nil {
-		t.Fatal(err)
-	}
-	rr = httptest.NewRecorder()
-	handler.ServeHTTP(rr, req)
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("Wrong status code: got %v want %v", status, http.StatusOK)
-	}
-	expected = "DELETED 0\n"
-	if rr.Body.String() != expected {
-		t.Errorf("Unexpected body: got %v want %v", rr.Body.String(), expected)
 	}
 }

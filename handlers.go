@@ -303,7 +303,7 @@ func (h *Handler) BulkIncHandler(w http.ResponseWriter, r *http.Request, list st
 // number of items successfully deleted, generally len(items) or 0.
 func (h *Handler) BulkDelHandler(w http.ResponseWriter, r *http.Request, list string) {
 	if r.Body == nil {
-		fmt.Fprintf(w, "DELETED 0\n")
+		printSuccess(w, r, &DeletedMessage{Deleted: 0})
 		return
 	}
 	bodyBytes, err := ioutil.ReadAll(r.Body)
@@ -325,7 +325,7 @@ func (h *Handler) BulkDelHandler(w http.ResponseWriter, r *http.Request, list st
 		http.Error(w, errStr, http.StatusInternalServerError)
 		return
 	}
-	fmt.Fprintf(w, "DELETED %d\n", count)
+	printSuccess(w, r, &DeletedMessage{Deleted: count})
 }
 
 func printListEntries(w http.ResponseWriter, r *http.Request, listEntries []ListEntry) {
