@@ -461,22 +461,44 @@ e`),
 			}
 		}
 	}
-	// What if we bulk increment nothing?
-	req, err := http.NewRequest("BULKINCREMENT", "/lists/downloads", nil)
-	if err != nil {
-		t.Fatal(err)
+}
+
+func TestBulkIncHandlerError(t *testing.T) {
+	var tests = []struct {
+		name     string
+		mime     string
+		expected string
+	}{
+		{
+			name:     "text",
+			mime:     "text/plain",
+			expected: "INCREMENTED 0\n",
+		},
+		{
+			name: "JSON",
+			mime: "application/json",
+			expected: `{"incremented":0}
+`,
+		},
 	}
-	rr := httptest.NewRecorder()
-	s := getEmptyStore(t)
-	h := &Handler{Store: s}
-	handler := http.Handler(h)
-	handler.ServeHTTP(rr, req)
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
-	}
-	expected := "INCREMENTED 0\n"
-	if rr.Body.String() != expected {
-		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
+	for _, test := range tests {
+		// What if we bulk increment nothing?
+		req, err := http.NewRequest("BULKINCREMENT", "/lists/downloads", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		req.Header.Set("Content-Type", test.mime)
+		rr := httptest.NewRecorder()
+		s := getEmptyStore(t)
+		h := &Handler{Store: s}
+		handler := http.Handler(h)
+		handler.ServeHTTP(rr, req)
+		if status := rr.Code; status != http.StatusOK {
+			t.Errorf("%s: handler returned wrong status code: got %v want %v", test.name, status, http.StatusOK)
+		}
+		if rr.Body.String() != test.expected {
+			t.Errorf("%s: handler returned unexpected body: got %v want %v", test.name, rr.Body.String(), test.expected)
+		}
 	}
 }
 
