@@ -97,22 +97,35 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// apparently POST creates a new resource or executes a controller
+	// PUT updates (replaces?) a mutable resource
+	// PATCH does a partial update of amutable resource
+	// DELETE deletes a resource, though for us, would delete delete a whole list?
+	// HEAD is like GET that only returns headers and no body; used to see if a resource exists or not without incurring the overhead of returning the resource
+
+	// TODO: HEAD /v1/lists/<listname>
+	// return 200 if list exists
+	// TODO: HEAD /v1/lists/<listname> [itemnames in body]
+	// return 200 if at least one item in the list exists; return each existing item in a return body; if none exist, return 404 and empty return body
+	// TODO: HEAD /v1/lists/<listname>/<itemname>
+	// return 200 if list item exists
 	switch r.Method {
-	case "PUT":
+	case "PUT": // XXX POST /v1/lists/<listname>/<itemname>
 		h.PutHandler(w, r, list, item)
-	case "GET":
+	case "GET": // XXX GET /v1/lists/<listname>/<itemname>
 		h.GetHandler(w, r, list, item)
-	case "INCREMENT":
+	case "INCREMENT": // XXX POST /v1/lists/<listname>/<itemname>?action=increment
 		h.IncHandler(w, r, list, item)
-	case "DELETE":
+	case "DELETE": // XXX DELETE /v1/lists/<listname>/<itemname>
 		h.DelHandler(w, r, list, item)
-	case "BULKPUT":
+	case "BULKPUT": // XXX POST /v1/lists/<listname> [itemnames in body]
 		h.BulkPutHandler(w, r, list)
-	case "BULKGET":
+		// TODO: get rid of X-IIDY headers; use request params instead
+	case "BULKGET": // XXX GET /v1/lists/<listname>?count=ct&after=it [itemnames in body]
 		h.BulkGetHandler(w, r, list)
-	case "BULKINCREMENT":
+	case "BULKINCREMENT": // XXX POST /v1/lists/<listname>?action=increment [itemnames in body]
 		h.BulkIncHandler(w, r, list)
-	case "BULKDELETE":
+	case "BULKDELETE": // XXX DELETE /v1/lists/<listname> [itemnames in body]
 		h.BulkDelHandler(w, r, list)
 	default:
 		http.Error(w, "Unknown method.", http.StatusBadRequest)
