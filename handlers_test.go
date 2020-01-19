@@ -388,70 +388,93 @@ func TestBulkGetHandlerError(t *testing.T) {
 }
 
 func TestBulkIncHandler(t *testing.T) {
-	s := getEmptyStore(t)
-	bulkAddTestItems(t, s)
-
-	// Can we bulk increment some of the items' attempts?
-	body := []byte(`a
+	var tests = []struct {
+		name     string
+		mime     string
+		body     []byte
+		expected string
+	}{
+		{
+			name: "text",
+			mime: "text/plain",
+			body: []byte(`a
 b
 c
 d
-e`)
-	req, err := http.NewRequest("BULKINCREMENT", "/lists/downloads", bytes.NewBuffer(body))
+e`),
+			expected: "INCREMENTED 5\n",
+		},
+		{
+			name: "JSON",
+			mime: "application/json",
+			body: []byte(`{ "items": ["a", "b", "c", "d", "e"] }`),
+			expected: `{"incremented":5}
+`,
+		},
+	}
+	for _, test := range tests {
+		s := getEmptyStore(t)
+		bulkAddTestItems(t, s)
+
+		// Can we bulk increment some of the items' attempts?
+		req, err := http.NewRequest("BULKINCREMENT", "/lists/downloads", bytes.NewBuffer(test.body))
+		if err != nil {
+			t.Fatal(err)
+		}
+		req.Header.Set("Content-Type", test.mime)
+		rr := httptest.NewRecorder()
+		h := &Handler{Store: s}
+		handler := http.Handler(h)
+		handler.ServeHTTP(rr, req)
+		if status := rr.Code; status != http.StatusOK {
+			t.Errorf("%s: handler returned wrong status code: got %v want %v", test.name, status, http.StatusOK)
+		}
+		if rr.Body.String() != test.expected {
+			t.Errorf("%s: handler returned unexpected body: got %v want %v", test.name, rr.Body.String(), test.expected)
+		}
+
+		// If we look for incremented items, are they incremented?
+		for _, file := range []string{"a", "b", "c", "d", "e"} {
+			attempts, ok, err := s.Get(context.Background(), "downloads", file)
+			if err != nil {
+				t.Errorf("%s: Error getting item: %v", test.name, err)
+			}
+			if !ok {
+				t.Errorf("%s: Did not properly get item %v from list.", test.name, file)
+			}
+			if attempts != 1 {
+				t.Errorf("%s: Did not properly increment item %v.", test.name, file)
+			}
+		}
+
+		// What about non-incremented items? Were they left alone?
+		for _, file := range []string{"f", "g"} {
+			attempts, ok, err := s.Get(context.Background(), "downloads", file)
+			if err != nil {
+				t.Errorf("%s: Error getting item: %v", test.name, err)
+			}
+			if !ok {
+				t.Errorf("%s: Did not properly get item %v from list.", test.name, file)
+			}
+			if attempts != 0 {
+				t.Errorf("%s: Item %v is incorrectly incremented.", test.name, file)
+			}
+		}
+	}
+	// What if we bulk increment nothing?
+	req, err := http.NewRequest("BULKINCREMENT", "/lists/downloads", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	rr := httptest.NewRecorder()
+	s := getEmptyStore(t)
 	h := &Handler{Store: s}
 	handler := http.Handler(h)
 	handler.ServeHTTP(rr, req)
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
-	expected := "INCREMENTED 5\n"
-	if rr.Body.String() != expected {
-		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
-	}
-
-	// If we look for incremented items, are they incremented?
-	for _, file := range []string{"a", "b", "c", "d", "e"} {
-		attempts, ok, err := s.Get(context.Background(), "downloads", file)
-		if err != nil {
-			t.Errorf("Error getting item: %v", err)
-		}
-		if !ok {
-			t.Errorf("Did not properly get item %v from list.", file)
-		}
-		if attempts != 1 {
-			t.Errorf("Did not properly increment item %v.", file)
-		}
-	}
-
-	// What about non-incremented items? Were they left alone?
-	for _, file := range []string{"f", "g"} {
-		attempts, ok, err := s.Get(context.Background(), "downloads", file)
-		if err != nil {
-			t.Errorf("Error getting item: %v", err)
-		}
-		if !ok {
-			t.Errorf("Did not properly get item %v from list.", file)
-		}
-		if attempts != 0 {
-			t.Errorf("Item %v is incorrectly incremented.", file)
-		}
-	}
-
-	// What if we bulk increment nothing?
-	req, err = http.NewRequest("BULKINCREMENT", "/lists/downloads", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	rr = httptest.NewRecorder()
-	handler.ServeHTTP(rr, req)
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
-	}
-	expected = "INCREMENTED 0\n"
+	expected := "INCREMENTED 0\n"
 	if rr.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}

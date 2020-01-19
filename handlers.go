@@ -273,7 +273,7 @@ func (h *Handler) BulkGetHandler(w http.ResponseWriter, r *http.Request, list st
 // number of items successfully incremented, generally len(items) or 0.
 func (h *Handler) BulkIncHandler(w http.ResponseWriter, r *http.Request, list string) {
 	if r.Body == nil {
-		fmt.Fprintf(w, "INCREMENTED 0\n")
+		printSuccess(w, r, &IncrementedMessage{Incremented: 0})
 		return
 	}
 	bodyBytes, err := ioutil.ReadAll(r.Body)
@@ -295,7 +295,7 @@ func (h *Handler) BulkIncHandler(w http.ResponseWriter, r *http.Request, list st
 		http.Error(w, errStr, http.StatusInternalServerError)
 		return
 	}
-	fmt.Fprintf(w, "INCREMENTED %d\n", count)
+	printSuccess(w, r, &IncrementedMessage{Incremented: count})
 }
 
 // BulkDelHandler deletes all of the items in the request body (item names
@@ -303,7 +303,7 @@ func (h *Handler) BulkIncHandler(w http.ResponseWriter, r *http.Request, list st
 // number of items successfully deleted, generally len(items) or 0.
 func (h *Handler) BulkDelHandler(w http.ResponseWriter, r *http.Request, list string) {
 	if r.Body == nil {
-		fmt.Fprintf(w, "ADDED 0\n")
+		fmt.Fprintf(w, "DELETED 0\n")
 		return
 	}
 	bodyBytes, err := ioutil.ReadAll(r.Body)
