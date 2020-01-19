@@ -295,113 +295,90 @@ robots.txt`),
 }
 
 func TestBulkGetHandler(t *testing.T) {
-	s := getEmptyStore(t)
-	bulkAddTestItems(t, s)
-
-	// Can we bulk get the test items in batches of 2?
+	// Order of these tests matters. We set up state and go through in order.
 	var tests = []struct {
 		afterItem string
 		want      string
+		wantJSON  string
 		lastItem  string
 	}{
-		{"", "a 0\nb 0\n", "b"},
-		{"b", "c 0\nd 0\n", "d"},
-		{"d", "e 0\nf 0\n", "f"},
-		{"f", "g 0\n", "g"},
-	}
-	for _, test := range tests {
-		req, err := http.NewRequest("BULKGET", "/lists/downloads", nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if test.afterItem != "" {
-			req.Header.Set("X-IIDY-After-Item", test.afterItem)
-		}
-		req.Header.Set("X-IIDY-Count", "2")
-		rr := httptest.NewRecorder()
-		h := &Handler{Store: s}
-		handler := http.Handler(h)
-		handler.ServeHTTP(rr, req)
-		if status := rr.Code; status != http.StatusOK {
-			t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
-		}
-		lastItem := rr.Result().Header.Get("X-IIDY-Last-Item")
-		if lastItem != test.lastItem {
-			t.Errorf("handler returned wrong last item: got %v want %v", lastItem, test.lastItem)
-		}
-		if rr.Body.String() != test.want {
-			t.Errorf("handler returned unexpected body: got '%v' want '%v'", rr.Body.String(), test.want)
-		}
+		{
+			afterItem: "",
+			want:      "a 0\nb 0\n",
+			wantJSON: `{"listentries":[{"item":"a","attempts":0},{"item":"b","attempts":0}]}
+`,
+			lastItem: "b",
+		},
+		{
+			afterItem: "b",
+			want:      "c 0\nd 0\n",
+			wantJSON: `{"listentries":[{"item":"c","attempts":0},{"item":"d","attempts":0}]}
+`,
+			lastItem: "d",
+		},
+		{
+			afterItem: "d",
+			want:      "e 0\nf 0\n",
+			wantJSON: `{"listentries":[{"item":"e","attempts":0},{"item":"f","attempts":0}]}
+`,
+			lastItem: "f",
+		},
+		{
+			afterItem: "f",
+			want:      "g 0\n",
+			wantJSON: `{"listentries":[{"item":"g","attempts":0}]}
+`,
+			lastItem: "g",
+		},
 	}
 
-	// What if we bulk get from a list that doesn't exist?
-	req, err := http.NewRequest("BULKGET", "/lists/i_do_not_exist", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	req.Header.Set("X-IIDY-Count", "2")
-	rr := httptest.NewRecorder()
-	h := &Handler{Store: s}
-	handler := http.Handler(h)
-	handler.ServeHTTP(rr, req)
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	s := getEmptyStore(t)
+	bulkAddTestItems(t, s)
+
+	for _, mime := range []string{"text/plain", "application/json"} {
+		for _, test := range tests {
+			var want string
+			if mime == "text/plain" {
+				want = test.want
+			} else {
+				want = test.wantJSON
+			}
+			req, err := http.NewRequest("BULKGET", "/lists/downloads", nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if test.afterItem != "" {
+				req.Header.Set("X-IIDY-After-Item", test.afterItem)
+			}
+			req.Header.Set("X-IIDY-Count", "2")
+			req.Header.Set("Content-Type", mime)
+			rr := httptest.NewRecorder()
+			h := &Handler{Store: s}
+			handler := http.Handler(h)
+			handler.ServeHTTP(rr, req)
+			if status := rr.Code; status != http.StatusOK {
+				t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+			}
+			lastItem := rr.Result().Header.Get("X-IIDY-Last-Item")
+			if lastItem != test.lastItem {
+				t.Errorf("handler returned wrong last item: got %v want %v", lastItem, test.lastItem)
+			}
+			if rr.Body.String() != want {
+				t.Errorf("handler returned unexpected body: got '%v' want '%v'", rr.Body.String(), want)
+			}
+		}
 	}
 }
 
-func TestBulkGetHandlerJSON(t *testing.T) {
-	s := getEmptyStore(t)
-	bulkAddTestItems(t, s)
-
-	// Can we bulk get the test items in batches of 2?
-	var tests = []struct {
-		afterItem string
-		want      string
-		lastItem  string
-	}{
-		{"", `{"listentries":[{"item":"a","attempts":0},{"item":"b","attempts":0}]}
-`, "b"},
-		{"b", `{"listentries":[{"item":"c","attempts":0},{"item":"d","attempts":0}]}
-`, "d"},
-		{"d", `{"listentries":[{"item":"e","attempts":0},{"item":"f","attempts":0}]}
-`, "f"},
-		{"f", `{"listentries":[{"item":"g","attempts":0}]}
-`, "g"},
-	}
-	for _, test := range tests {
-		req, err := http.NewRequest("BULKGET", "/lists/downloads", nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if test.afterItem != "" {
-			req.Header.Set("X-IIDY-After-Item", test.afterItem)
-		}
-		req.Header.Set("X-IIDY-Count", "2")
-		req.Header.Set("Content-Type", "application/json")
-		rr := httptest.NewRecorder()
-		h := &Handler{Store: s}
-		handler := http.Handler(h)
-		handler.ServeHTTP(rr, req)
-		if status := rr.Code; status != http.StatusOK {
-			t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
-		}
-		lastItem := rr.Result().Header.Get("X-IIDY-Last-Item")
-		if lastItem != test.lastItem {
-			t.Errorf("handler returned wrong last item: got %v want %v", lastItem, test.lastItem)
-		}
-		if rr.Body.String() != test.want {
-			t.Errorf("handler returned unexpected body: got '%v' want '%v'", rr.Body.String(), test.want)
-		}
-	}
-
+func TestBulkGetHandlerError(t *testing.T) {
 	// What if we bulk get from a list that doesn't exist?
 	req, err := http.NewRequest("BULKGET", "/lists/i_do_not_exist", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	req.Header.Set("X-IIDY-Count", "2")
-	req.Header.Set("Content-Type", "application/json")
 	rr := httptest.NewRecorder()
+	s := getEmptyStore(t)
 	h := &Handler{Store: s}
 	handler := http.Handler(h)
 	handler.ServeHTTP(rr, req)

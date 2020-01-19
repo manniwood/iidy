@@ -282,9 +282,12 @@ func (h *Handler) BulkIncHandler(w http.ResponseWriter, r *http.Request, list st
 		http.Error(w, errStr, http.StatusBadRequest)
 		return
 	}
-	// XXX: Oh, wait; we need a way to parse this regardless if it is
-	// text/plain or application/json
-	items := getScrubbedLines(bodyBytes)
+	items, err := getItemsFromBody(fmt.Sprintf("%s", r.Context().Value(FinalContentTypeKey)), bodyBytes)
+	if err != nil {
+		errStr := fmt.Sprintf("Error trying to parse list of items from request body: %v", err)
+		printError(w, r, &ErrorMessage{Error: errStr}, http.StatusInternalServerError)
+		return
+	}
 
 	count, err := h.Store.BulkInc(r.Context(), list, items)
 	if err != nil {
@@ -309,9 +312,12 @@ func (h *Handler) BulkDelHandler(w http.ResponseWriter, r *http.Request, list st
 		http.Error(w, errStr, http.StatusBadRequest)
 		return
 	}
-	// XXX: Oh, wait; we need a way to parse this regardless if it is
-	// text/plain or application/json
-	items := getScrubbedLines(bodyBytes)
+	items, err := getItemsFromBody(fmt.Sprintf("%s", r.Context().Value(FinalContentTypeKey)), bodyBytes)
+	if err != nil {
+		errStr := fmt.Sprintf("Error trying to parse list of items from request body: %v", err)
+		printError(w, r, &ErrorMessage{Error: errStr}, http.StatusInternalServerError)
+		return
+	}
 
 	count, err := h.Store.BulkDel(r.Context(), list, items)
 	if err != nil {
