@@ -217,7 +217,7 @@ func TestDelHandler(t *testing.T) {
 
 }
 
-func TestBulkPutHandler(t *testing.T) {
+func TestBulkPostHandler(t *testing.T) {
 	var tests = []struct {
 		mime           string
 		body           []byte
