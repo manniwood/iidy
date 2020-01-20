@@ -114,12 +114,12 @@ func (h *Handler) handleDelete(w http.ResponseWriter, r *http.Request) {
 	if urlParts[2] == "lists" {
 		list := urlParts[3]
 		item := urlParts[4]
-		h.DelHandler(w, r, list, item)
+		h.handleSingleDelete(w, r, list, item)
 		return
 	}
 	if urlParts[2] == "bulk" && urlParts[3] == "lists" {
 		list := urlParts[4]
-		h.BulkDelHandler(w, r, list)
+		h.handleBulkDelete(w, r, list)
 		return
 	}
 	errStr := fmt.Sprintf(`"%s" is not a valid %s url`, r.URL.Path, http.MethodDelete)
@@ -141,12 +141,12 @@ func (h *Handler) handleGet(w http.ResponseWriter, r *http.Request) {
 	if urlParts[2] == "lists" {
 		list := urlParts[3]
 		item := urlParts[4]
-		h.GetHandler(w, r, list, item)
+		h.handleSingleGet(w, r, list, item)
 		return
 	}
 	if urlParts[2] == "bulk" && urlParts[3] == "lists" {
 		list := urlParts[4]
-		h.BulkGetHandler(w, r, list)
+		h.handleBulkGet(w, r, list)
 		return
 	}
 	errStr := fmt.Sprintf(`"%s" is not a valid %s url`, r.URL.Path, http.MethodPost)
@@ -169,18 +169,18 @@ func (h *Handler) handlePost(w http.ResponseWriter, r *http.Request) {
 		list := urlParts[3]
 		item := urlParts[4]
 		if r.FormValue("action") == "increment" {
-			h.IncHandler(w, r, list, item)
+			h.handleSingleIncrement(w, r, list, item)
 		} else {
-			h.PutHandler(w, r, list, item)
+			h.handleSingleInsert(w, r, list, item)
 		}
 		return
 	}
 	if urlParts[2] == "bulk" && urlParts[3] == "lists" {
 		list := urlParts[4]
 		if r.FormValue("action") == "increment" {
-			h.BulkIncHandler(w, r, list)
+			h.handleBulkIncrement(w, r, list)
 		} else {
-			h.BulkPutHandler(w, r, list)
+			h.handleBulkInsert(w, r, list)
 		}
 		return
 	}
@@ -189,9 +189,9 @@ func (h *Handler) handlePost(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// PutHandler adds an item to a list. If the list does not already exist,
+// handleSingleInsert adds an item to a list. If the list does not already exist,
 // the list will be created.
-func (h *Handler) PutHandler(w http.ResponseWriter, r *http.Request, list string, item string) {
+func (h *Handler) handleSingleInsert(w http.ResponseWriter, r *http.Request, list string, item string) {
 	// XXX: return status 201, created
 	count, err := h.Store.Add(r.Context(), list, item)
 	if err != nil {
@@ -202,9 +202,9 @@ func (h *Handler) PutHandler(w http.ResponseWriter, r *http.Request, list string
 	printSuccess(w, r, &AddedMessage{Added: count})
 }
 
-// IncHandler increments an item in a list. The returned body text reports
+// handleSingleIncrement increments an item in a list. The returned body text reports
 // the number of items found and incremented (1 or 0).
-func (h *Handler) IncHandler(w http.ResponseWriter, r *http.Request, list string, item string) {
+func (h *Handler) handleSingleIncrement(w http.ResponseWriter, r *http.Request, list string, item string) {
 	count, err := h.Store.Inc(r.Context(), list, item)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to increment list item: %v", err)
@@ -214,9 +214,9 @@ func (h *Handler) IncHandler(w http.ResponseWriter, r *http.Request, list string
 	printSuccess(w, r, &IncrementedMessage{Incremented: count})
 }
 
-// DelHandler deletes an item from a list. The returned body text reports
+// handleSingleDelete deletes an item from a list. The returned body text reports
 // the number of items found and deleted (1 or 0).
-func (h *Handler) DelHandler(w http.ResponseWriter, r *http.Request, list string, item string) {
+func (h *Handler) handleSingleDelete(w http.ResponseWriter, r *http.Request, list string, item string) {
 	count, err := h.Store.Del(r.Context(), list, item)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to delete list item: %v", err)
@@ -226,10 +226,10 @@ func (h *Handler) DelHandler(w http.ResponseWriter, r *http.Request, list string
 	printSuccess(w, r, &DeletedMessage{Deleted: count})
 }
 
-// GetHandler returns the number of attempts that were made to complete
+// handleSingleGet returns the number of attempts that were made to complete
 // an item in a list. When a list or list item is missing, no body will
 // be returned, and a status of 404 will be given.
-func (h *Handler) GetHandler(w http.ResponseWriter, r *http.Request, list string, item string) {
+func (h *Handler) handleSingleGet(w http.ResponseWriter, r *http.Request, list string, item string) {
 	attempts, ok, err := h.Store.Get(r.Context(), list, item)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to get list item: %v", err)
@@ -271,11 +271,10 @@ func getScrubbedLines(bodyBytes []byte) []string {
 	return strings.Split(bodyString, "\n")
 }
 
-// BulkPutHandler adds all of the items in the request body (item names
-// separated by newlines) to the specified list, and sets their completion
-// attempt counts to 0. The response contains the number of items successfully
-// inserted, generally len(items) or 0.
-func (h *Handler) BulkPutHandler(w http.ResponseWriter, r *http.Request, list string) {
+// handleBulkInsert adds all of the items in the request body to the specified
+// list, and sets their completion attempt counts to 0. The response contains
+// the number of items successfully inserted, generally len(items) or 0.
+func (h *Handler) handleBulkInsert(w http.ResponseWriter, r *http.Request, list string) {
 	// XXX return status 201, created
 	if r.Body == nil {
 		printSuccess(w, r, &AddedMessage{Added: 0})
@@ -303,16 +302,16 @@ func (h *Handler) BulkPutHandler(w http.ResponseWriter, r *http.Request, list st
 	printSuccess(w, r, &AddedMessage{Added: count})
 }
 
-// BulkGetHandler requires the "X-IIDY-Count" header, and takes an optional
+// handleBulkGet requires the "X-IIDY-Count" header, and takes an optional
 // "X-IIDY-After-Item" header. It returns a response body of list items;
-// each list item is followed by a space and the number of attempts to
-// complete that list item. Each list item / attempt count pair is separated
-// by a newline. "X-IIDY-Count" determines how many items are returned (from
+// each list item shows the number of attempts to
+// complete that list item. "X-IIDY-Count" determines how many items are
+// returned (from
 // the sorted list). "X-IIDY-After-Item" determines the offset in the list;
 // when set to the empty string, we start at the beginning of the list; when
 // set to an item (generally the last item from a previous call to this
 // handler) we start after that item in the list.
-func (h *Handler) BulkGetHandler(w http.ResponseWriter, r *http.Request, list string) {
+func (h *Handler) handleBulkGet(w http.ResponseWriter, r *http.Request, list string) {
 	startID := r.Header.Get("X-IIDY-After-Item")
 	countStr := r.Header.Get("X-IIDY-Count")
 	if countStr == "" {
@@ -340,10 +339,10 @@ func (h *Handler) BulkGetHandler(w http.ResponseWriter, r *http.Request, list st
 	printListEntries(w, r, listEntries)
 }
 
-// BulkIncHandler increments all of the items in the request body (item names
-// separated by newlines) in the specified list. The response contains the
+// handleBulkIncrement increments all of the items in the request body
+// in the specified list. The response contains the
 // number of items successfully incremented, generally len(items) or 0.
-func (h *Handler) BulkIncHandler(w http.ResponseWriter, r *http.Request, list string) {
+func (h *Handler) handleBulkIncrement(w http.ResponseWriter, r *http.Request, list string) {
 	if r.Body == nil {
 		printSuccess(w, r, &IncrementedMessage{Incremented: 0})
 		return
@@ -370,10 +369,10 @@ func (h *Handler) BulkIncHandler(w http.ResponseWriter, r *http.Request, list st
 	printSuccess(w, r, &IncrementedMessage{Incremented: count})
 }
 
-// BulkDelHandler deletes all of the items in the request body (item names
-// separated by newlines) from the specified list. The response contains the
+// handleBulkDelete deletes all of the items in the request body
+// from the specified list. The response contains the
 // number of items successfully deleted, generally len(items) or 0.
-func (h *Handler) BulkDelHandler(w http.ResponseWriter, r *http.Request, list string) {
+func (h *Handler) handleBulkDelete(w http.ResponseWriter, r *http.Request, list string) {
 	if r.Body == nil {
 		printSuccess(w, r, &DeletedMessage{Deleted: 0})
 		return
