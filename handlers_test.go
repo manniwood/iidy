@@ -21,8 +21,8 @@ func TestPostHandler(t *testing.T) {
 	h := &Handler{Store: getEmptyStore(t)}
 	handler := http.Handler(h)
 	handler.ServeHTTP(rr, req)
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	if status := rr.Code; status != http.StatusCreated {
+		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusCreated)
 	}
 	expected := "ADDED 1\n"
 	if rr.Body.String() != expected {
@@ -279,8 +279,8 @@ robots.txt`),
 		rr := httptest.NewRecorder()
 		handler := http.Handler(h)
 		handler.ServeHTTP(rr, req)
-		if status := rr.Code; status != http.StatusOK {
-			t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+		if status := rr.Code; status != http.StatusCreated {
+			t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusCreated)
 		}
 		if rr.Body.String() != test.expectAfterAdd {
 			t.Errorf(`Unexpected body: got "%v" want "%v"`, rr.Body.String(), test.expectAfterAdd)

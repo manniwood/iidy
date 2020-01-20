@@ -192,14 +192,13 @@ func (h *Handler) handlePost(w http.ResponseWriter, r *http.Request) {
 // handleSingleInsert adds an item to a list. If the list does not already exist,
 // the list will be created.
 func (h *Handler) handleSingleInsert(w http.ResponseWriter, r *http.Request, list string, item string) {
-	// XXX: return status 201, created
 	count, err := h.Store.Add(r.Context(), list, item)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to add list item: %v", err)
 		printError(w, r, &ErrorMessage{Error: errStr}, http.StatusInternalServerError)
 		return
 	}
-	printSuccess(w, r, &AddedMessage{Added: count})
+	printSuccess(w, r, &AddedMessage{Added: count}, http.StatusCreated)
 }
 
 // handleSingleIncrement increments an item in a list. The returned body text reports
@@ -211,7 +210,7 @@ func (h *Handler) handleSingleIncrement(w http.ResponseWriter, r *http.Request, 
 		printError(w, r, &ErrorMessage{Error: errStr}, http.StatusInternalServerError)
 		return
 	}
-	printSuccess(w, r, &IncrementedMessage{Incremented: count})
+	printSuccess(w, r, &IncrementedMessage{Incremented: count}, http.StatusOK)
 }
 
 // handleSingleDelete deletes an item from a list. The returned body text reports
@@ -223,7 +222,7 @@ func (h *Handler) handleSingleDelete(w http.ResponseWriter, r *http.Request, lis
 		printError(w, r, &ErrorMessage{Error: errStr}, http.StatusInternalServerError)
 		return
 	}
-	printSuccess(w, r, &DeletedMessage{Deleted: count})
+	printSuccess(w, r, &DeletedMessage{Deleted: count}, http.StatusOK)
 }
 
 // handleSingleGet returns the number of attempts that were made to complete
@@ -275,9 +274,8 @@ func getScrubbedLines(bodyBytes []byte) []string {
 // list, and sets their completion attempt counts to 0. The response contains
 // the number of items successfully inserted, generally len(items) or 0.
 func (h *Handler) handleBulkInsert(w http.ResponseWriter, r *http.Request, list string) {
-	// XXX return status 201, created
 	if r.Body == nil {
-		printSuccess(w, r, &AddedMessage{Added: 0})
+		printSuccess(w, r, &AddedMessage{Added: 0}, http.StatusOK)
 		return
 	}
 	bodyBytes, err := ioutil.ReadAll(r.Body)
@@ -299,7 +297,7 @@ func (h *Handler) handleBulkInsert(w http.ResponseWriter, r *http.Request, list 
 		printError(w, r, &ErrorMessage{Error: errStr}, http.StatusInternalServerError)
 		return
 	}
-	printSuccess(w, r, &AddedMessage{Added: count})
+	printSuccess(w, r, &AddedMessage{Added: count}, http.StatusCreated)
 }
 
 // handleBulkGet requires the "X-IIDY-Count" header, and takes an optional
@@ -344,7 +342,7 @@ func (h *Handler) handleBulkGet(w http.ResponseWriter, r *http.Request, list str
 // number of items successfully incremented, generally len(items) or 0.
 func (h *Handler) handleBulkIncrement(w http.ResponseWriter, r *http.Request, list string) {
 	if r.Body == nil {
-		printSuccess(w, r, &IncrementedMessage{Incremented: 0})
+		printSuccess(w, r, &IncrementedMessage{Incremented: 0}, http.StatusOK)
 		return
 	}
 	bodyBytes, err := ioutil.ReadAll(r.Body)
@@ -366,7 +364,7 @@ func (h *Handler) handleBulkIncrement(w http.ResponseWriter, r *http.Request, li
 		http.Error(w, errStr, http.StatusInternalServerError)
 		return
 	}
-	printSuccess(w, r, &IncrementedMessage{Incremented: count})
+	printSuccess(w, r, &IncrementedMessage{Incremented: count}, http.StatusOK)
 }
 
 // handleBulkDelete deletes all of the items in the request body
@@ -374,7 +372,7 @@ func (h *Handler) handleBulkIncrement(w http.ResponseWriter, r *http.Request, li
 // number of items successfully deleted, generally len(items) or 0.
 func (h *Handler) handleBulkDelete(w http.ResponseWriter, r *http.Request, list string) {
 	if r.Body == nil {
-		printSuccess(w, r, &DeletedMessage{Deleted: 0})
+		printSuccess(w, r, &DeletedMessage{Deleted: 0}, http.StatusOK)
 		return
 	}
 	bodyBytes, err := ioutil.ReadAll(r.Body)
@@ -396,7 +394,7 @@ func (h *Handler) handleBulkDelete(w http.ResponseWriter, r *http.Request, list 
 		http.Error(w, errStr, http.StatusInternalServerError)
 		return
 	}
-	printSuccess(w, r, &DeletedMessage{Deleted: count})
+	printSuccess(w, r, &DeletedMessage{Deleted: count}, http.StatusOK)
 }
 
 func printListEntries(w http.ResponseWriter, r *http.Request, listEntries []ListEntry) {
@@ -431,7 +429,8 @@ func printError(w http.ResponseWriter, r *http.Request, e *ErrorMessage, code in
 	return
 }
 
-func printSuccess(w http.ResponseWriter, r *http.Request, v interface{}) {
+func printSuccess(w http.ResponseWriter, r *http.Request, v interface{}, code int) {
+	w.WriteHeader(code)
 	contentType := r.Context().Value(FinalContentTypeKey)
 	if contentType == "application/json" {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
