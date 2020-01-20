@@ -62,42 +62,24 @@ type Handler struct {
 }
 
 // ServeHTTP satisfies the http.Handler interface. It is expected to handle
-// all traffic to "/lists/". It parses out the list and item names
-// from the URL and then delegates to more specific handlers depending on
-// the request method.
+// all traffic to "/". It looks at the request and then delegates to more
+// specific handlers depending on the request method.
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	contentType := r.Header.Get("Content-Type")
 	_, ok := HandledContentTypes[contentType]
 	if contentType == "" || !ok {
+		// If the client handed us a content type we do not understand,
+		// default to returning text/plain.
 		contentType = "text/plain"
 	}
 	r = r.WithContext(context.WithValue(r.Context(), FinalContentTypeKey, contentType))
 
+	// Tell the client to take the "Content-Type header seriously.
 	w.Header().Set("X-Content-Type-Options", "nosniff")
-	urlParts := strings.Split(r.URL.Path, "/")
-	var list string
-	var item string
-	switch r.Method {
-	case "PUT", "GET", "INCREMENT", "DELETE":
-		if len(urlParts) != 4 {
-			http.Error(w, "Bad request; needs to look like /lists/<listname>/<itemname>", http.StatusBadRequest)
-			return
-		}
-		list = urlParts[2]
-		item = urlParts[3]
-		// TODO: maybe just to bulk handling based on whether or not there is a body
-	case "BULKPUT", "BULKGET", "BULKINCREMENT", "BULKDELETE":
-		if len(urlParts) != 3 {
-			http.Error(w, "Bad request; needs to look like /lists/<listname>", http.StatusBadRequest)
-			return
-		}
-		list = urlParts[2]
-	default:
-		http.Error(w, "Unknown method.", http.StatusBadRequest)
-		return
-	}
 
-	// apparently POST creates a new resource or executes a controller
+	// REST is not a standard, but we will take inspiration from the book
+	// _How to Build Microservices in Go_:
+	// POST creates a new resource or executes a controller
 	// PUT updates (replaces?) a mutable resource
 	// PATCH does a partial update of amutable resource
 	// DELETE deletes a resource, though for us, would delete delete a whole list?
@@ -105,36 +87,112 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// TODO: HEAD /v1/lists/<listname>
 	// return 200 if list exists
-	// TODO: HEAD /v1/lists/<listname> [itemnames in body]
-	// return 200 if at least one item in the list exists; return each existing item in a return body; if none exist, return 404 and empty return body
 	// TODO: HEAD /v1/lists/<listname>/<itemname>
 	// return 200 if list item exists
 	switch r.Method {
-	case "PUT": // XXX POST /v1/lists/<listname>/<itemname>
-		h.PutHandler(w, r, list, item)
-	case "GET": // XXX GET /v1/lists/<listname>/<itemname>
-		h.GetHandler(w, r, list, item)
-	case "INCREMENT": // XXX POST /v1/lists/<listname>/<itemname>?action=increment
-		h.IncHandler(w, r, list, item)
-	case "DELETE": // XXX DELETE /v1/lists/<listname>/<itemname>
-		h.DelHandler(w, r, list, item)
-	case "BULKPUT": // XXX POST /v1/lists/<listname> [itemnames in body]
-		h.BulkPutHandler(w, r, list)
-		// TODO: get rid of X-IIDY headers; use request params instead
-	case "BULKGET": // XXX GET /v1/lists/<listname>?count=ct&after=it [itemnames in body]
-		h.BulkGetHandler(w, r, list)
-	case "BULKINCREMENT": // XXX POST /v1/lists/<listname>?action=increment [itemnames in body]
-		h.BulkIncHandler(w, r, list)
-	case "BULKDELETE": // XXX DELETE /v1/lists/<listname> [itemnames in body]
-		h.BulkDelHandler(w, r, list)
+	case http.MethodPost:
+		h.handlePost(w, r)
+	case http.MethodGet:
+		h.handleGet(w, r)
+	case http.MethodDelete:
+		h.handleDelete(w, r)
 	default:
 		http.Error(w, "Unknown method.", http.StatusBadRequest)
 	}
 }
 
+// handleDelete handles GETs to these two endpoints:
+// DELETE /v1/lists/<listname>/<itemname>
+// DELETE /v1/bulk/lists/<listname> [itemnames in body]
+func (h *Handler) handleDelete(w http.ResponseWriter, r *http.Request) {
+	urlParts := strings.Split(r.URL.Path, "/")
+	if len(urlParts) < 5 {
+		errStr := fmt.Sprintf(`"%s" is not a valid %s url`, r.URL.Path, http.MethodDelete)
+		printError(w, r, &ErrorMessage{Error: errStr}, http.StatusBadRequest)
+		return
+	}
+	if urlParts[2] == "lists" {
+		list := urlParts[3]
+		item := urlParts[4]
+		h.DelHandler(w, r, list, item)
+		return
+	}
+	if urlParts[2] == "bulk" && urlParts[3] == "lists" {
+		list := urlParts[4]
+		h.BulkDelHandler(w, r, list)
+		return
+	}
+	errStr := fmt.Sprintf(`"%s" is not a valid %s url`, r.URL.Path, http.MethodDelete)
+	printError(w, r, &ErrorMessage{Error: errStr}, http.StatusBadRequest)
+	return
+}
+
+// handleGet handles GETs to these two endpoints:
+//     GET /v1/lists/<listname>/<itemname>
+//     GET /v1/bulk/lists/<listname>?count=ct&after=it
+// TODO: get rid of X-IIDY headers; use request params instead
+func (h *Handler) handleGet(w http.ResponseWriter, r *http.Request) {
+	urlParts := strings.Split(r.URL.Path, "/")
+	if len(urlParts) < 5 {
+		errStr := fmt.Sprintf(`"%s" is not a valid %s url`, r.URL.Path, http.MethodGet)
+		printError(w, r, &ErrorMessage{Error: errStr}, http.StatusBadRequest)
+		return
+	}
+	if urlParts[2] == "lists" {
+		list := urlParts[3]
+		item := urlParts[4]
+		h.GetHandler(w, r, list, item)
+		return
+	}
+	if urlParts[2] == "bulk" && urlParts[3] == "lists" {
+		list := urlParts[4]
+		h.BulkGetHandler(w, r, list)
+		return
+	}
+	errStr := fmt.Sprintf(`"%s" is not a valid %s url`, r.URL.Path, http.MethodPost)
+	printError(w, r, &ErrorMessage{Error: errStr}, http.StatusBadRequest)
+	return
+}
+
+// handlePost handles POSTs to these three endpoints:
+//     POST /v1/lists/<listname>/<itemname>
+//     POST /v1/bulk/lists/<listname> [itemnames in body]
+//     POST /v1/bulk/lists/<listname>?action=increment [itemnames in body]
+func (h *Handler) handlePost(w http.ResponseWriter, r *http.Request) {
+	urlParts := strings.Split(r.URL.Path, "/")
+	if len(urlParts) < 5 {
+		errStr := fmt.Sprintf(`"%s" is not a valid %s url`, r.URL.Path, http.MethodPost)
+		printError(w, r, &ErrorMessage{Error: errStr}, http.StatusBadRequest)
+		return
+	}
+	if urlParts[2] == "lists" {
+		list := urlParts[3]
+		item := urlParts[4]
+		if r.FormValue("action") == "increment" {
+			h.IncHandler(w, r, list, item)
+		} else {
+			h.PutHandler(w, r, list, item)
+		}
+		return
+	}
+	if urlParts[2] == "bulk" && urlParts[3] == "lists" {
+		list := urlParts[4]
+		if r.FormValue("action") == "increment" {
+			h.BulkIncHandler(w, r, list)
+		} else {
+			h.BulkPutHandler(w, r, list)
+		}
+		return
+	}
+	errStr := fmt.Sprintf(`"%s" is not a valid %s url`, r.URL.Path, http.MethodPost)
+	printError(w, r, &ErrorMessage{Error: errStr}, http.StatusBadRequest)
+	return
+}
+
 // PutHandler adds an item to a list. If the list does not already exist,
 // the list will be created.
 func (h *Handler) PutHandler(w http.ResponseWriter, r *http.Request, list string, item string) {
+	// XXX: return status 201, created
 	count, err := h.Store.Add(r.Context(), list, item)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to add list item: %v", err)
@@ -218,6 +276,7 @@ func getScrubbedLines(bodyBytes []byte) []string {
 // attempt counts to 0. The response contains the number of items successfully
 // inserted, generally len(items) or 0.
 func (h *Handler) BulkPutHandler(w http.ResponseWriter, r *http.Request, list string) {
+	// XXX return status 201, created
 	if r.Body == nil {
 		printSuccess(w, r, &AddedMessage{Added: 0})
 		return

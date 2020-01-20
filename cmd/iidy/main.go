@@ -19,7 +19,7 @@ func main() {
 	log.Printf("Connecting to data store with following config:\n%s\n", s)
 	h := &iidy.Handler{Store: s}
 
-	http.Handle("/lists/", h)
+	http.Handle("/", h)
 
 	log.Printf("Server starting on port %d\n", port)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))

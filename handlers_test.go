@@ -12,8 +12,8 @@ import (
 // TODO: any json response bodies should probably be parsed into
 // structs and deep equalled.
 
-func TestPutHandler(t *testing.T) {
-	req, err := http.NewRequest("PUT", "/lists/downloads/kernel.tar.gz", nil)
+func TestPostHandler(t *testing.T) {
+	req, err := http.NewRequest(http.MethodPost, "/v1/lists/downloads/kernel.tar.gz", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -40,7 +40,7 @@ func TestPutHandler(t *testing.T) {
 }
 
 func TestNonExistentMethod(t *testing.T) {
-	req, err := http.NewRequest("BLARG", "/lists/downloads/kernel.tar.gz", nil)
+	req, err := http.NewRequest("BLARG", "/v1/lists/downloads/kernel.tar.gz", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,7 +62,7 @@ func TestGetHandler(t *testing.T) {
 	addSingleStartingItem(t, h.Store)
 
 	// Can we get an existing value?
-	req, err := http.NewRequest("GET", "/lists/downloads/kernel.tar.gz", nil)
+	req, err := http.NewRequest("GET", "/v1/lists/downloads/kernel.tar.gz", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -83,7 +83,7 @@ func TestUnhappyHandlerGetScenarios(t *testing.T) {
 	addSingleStartingItem(t, h.Store)
 
 	// What about getting an item that doesn't exist?
-	req, err := http.NewRequest("GET", "/lists/downloads/i_do_not_exist.tar.gz", nil)
+	req, err := http.NewRequest("GET", "/v1/lists/downloads/i_do_not_exist.tar.gz", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -99,7 +99,7 @@ func TestUnhappyHandlerGetScenarios(t *testing.T) {
 	}
 
 	// What about getting from a list that doesn't exist?
-	req, err = http.NewRequest("GET", "/lists/i_do_not_exist/kernel.tar.gz", nil)
+	req, err = http.NewRequest("GET", "/v1/lists/i_do_not_exist/kernel.tar.gz", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -118,7 +118,7 @@ func TestIncHandler(t *testing.T) {
 	addSingleStartingItem(t, h.Store)
 
 	// Can we increment the number of attempts for a list item?
-	req, err := http.NewRequest("INCREMENT", "/lists/downloads/kernel.tar.gz", nil)
+	req, err := http.NewRequest("POST", "/v1/lists/downloads/kernel.tar.gz?action=increment", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -134,7 +134,7 @@ func TestIncHandler(t *testing.T) {
 	}
 
 	// Is the incremented attempt fetchable with GET?
-	req, err = http.NewRequest("GET", "/lists/downloads/kernel.tar.gz", nil)
+	req, err = http.NewRequest("GET", "/v1/lists/downloads/kernel.tar.gz", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -149,7 +149,7 @@ func TestIncHandler(t *testing.T) {
 	}
 
 	// How about incrementing something that's not there?
-	req, err = http.NewRequest("INCREMENT", "/lists/i_do_not_exist/kernel.tar.gz", nil)
+	req, err = http.NewRequest("POST", "/v1/lists/i_do_not_exist/kernel.tar.gz?action=increment", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -170,7 +170,7 @@ func TestDelHandler(t *testing.T) {
 	addSingleStartingItem(t, h.Store)
 
 	// Can we delete our starting value?
-	req, err := http.NewRequest("DELETE", "/lists/downloads/kernel.tar.gz", nil)
+	req, err := http.NewRequest("DELETE", "/v1/lists/downloads/kernel.tar.gz", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -186,7 +186,7 @@ func TestDelHandler(t *testing.T) {
 	}
 
 	// Is the deleted value really no longer fetchable?
-	req, err = http.NewRequest("GET", "/lists/downloads/kernel.tar.gz", nil)
+	req, err = http.NewRequest("GET", "/v1/lists/downloads/kernel.tar.gz", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -201,7 +201,7 @@ func TestDelHandler(t *testing.T) {
 	}
 
 	// How about deleting something that's not there?
-	req, err = http.NewRequest("DELETE", "/lists/downloads/kernel.tar.gz", nil)
+	req, err = http.NewRequest("DELETE", "/v1/lists/downloads/kernel.tar.gz", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -271,7 +271,7 @@ robots.txt`),
 		// First, clear the store.
 		h.Store.Nuke(context.Background())
 
-		req, err := http.NewRequest("BULKPUT", "/lists/downloads", bytes.NewBuffer(test.body))
+		req, err := http.NewRequest("POST", "/v1/bulk/lists/downloads", bytes.NewBuffer(test.body))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -346,7 +346,7 @@ func TestBulkGetHandler(t *testing.T) {
 			} else {
 				want = test.wantJSON
 			}
-			req, err := http.NewRequest("BULKGET", "/lists/downloads", nil)
+			req, err := http.NewRequest("GET", "/v1/bulk/lists/downloads", nil)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -375,7 +375,7 @@ func TestBulkGetHandler(t *testing.T) {
 
 func TestBulkGetHandlerError(t *testing.T) {
 	// What if we bulk get from a list that doesn't exist?
-	req, err := http.NewRequest("BULKGET", "/lists/i_do_not_exist", nil)
+	req, err := http.NewRequest("GET", "/v1/bulk/lists/i_do_not_exist", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -420,7 +420,7 @@ e`),
 		bulkAddTestItems(t, s)
 
 		// Can we bulk increment some of the items' attempts?
-		req, err := http.NewRequest("BULKINCREMENT", "/lists/downloads", bytes.NewBuffer(test.body))
+		req, err := http.NewRequest("POST", "/v1/bulk/lists/downloads?action=increment", bytes.NewBuffer(test.body))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -486,7 +486,7 @@ func TestBulkIncHandlerError(t *testing.T) {
 	}
 	for _, test := range tests {
 		// What if we bulk increment nothing?
-		req, err := http.NewRequest("BULKINCREMENT", "/lists/downloads", nil)
+		req, err := http.NewRequest(http.MethodPost, "/v1/bulk/lists/downloads?action=increment", nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -534,7 +534,7 @@ e`),
 		s := getEmptyStore(t)
 		bulkAddTestItems(t, s)
 
-		req, err := http.NewRequest("BULKDELETE", "/lists/downloads", bytes.NewBuffer(test.body))
+		req, err := http.NewRequest(http.MethodDelete, "/v1/bulk/lists/downloads", bytes.NewBuffer(test.body))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -601,7 +601,7 @@ func TestBulkDelHandlerError(t *testing.T) {
 		// What if we bulk delete nothing?
 		// First, clear the store.
 		h.Store.Nuke(context.Background())
-		req, err := http.NewRequest("BULKDELETE", "/lists/downloads", nil)
+		req, err := http.NewRequest(http.MethodDelete, "/v1/bulk/lists/downloads", nil)
 		if err != nil {
 			t.Fatal(err)
 		}
