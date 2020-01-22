@@ -1,3 +1,8 @@
+
+1. update README for new API
+
+2. consider text/template for pg fetcher thingie
+
 Next steps:
 - do a PostgreSQL impl
 - do a Redis impl

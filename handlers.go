@@ -77,6 +77,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Tell the client to take the "Content-Type header seriously.
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 
+	// TODO: put this in the README instead
 	// REST is not a standard, but we will take inspiration from the book
 	// _How to Build Microservices in Go_:
 	// POST creates a new resource or executes a controller
@@ -102,23 +103,23 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleDelete handles GETs to these two endpoints:
-// DELETE /v1/lists/<listname>/<itemname>
-// DELETE /v1/bulk/lists/<listname> [itemnames in body]
+//     DELETE /v1/lists/<listname>/<itemname>
+//     DELETE /v1/bulk/lists/<listname> [itemnames in body]
 func (h *Handler) handleDelete(w http.ResponseWriter, r *http.Request) {
 	urlParts := strings.Split(r.URL.Path, "/")
-	if len(urlParts) < 5 {
+	if len(urlParts) < 6 {
 		errStr := fmt.Sprintf(`"%s" is not a valid %s url`, r.URL.Path, http.MethodDelete)
 		printError(w, r, &ErrorMessage{Error: errStr}, http.StatusBadRequest)
 		return
 	}
-	if urlParts[2] == "lists" {
-		list := urlParts[3]
-		item := urlParts[4]
+	if urlParts[3] == "lists" {
+		list := urlParts[4]
+		item := urlParts[5]
 		h.handleSingleDelete(w, r, list, item)
 		return
 	}
-	if urlParts[2] == "bulk" && urlParts[3] == "lists" {
-		list := urlParts[4]
+	if urlParts[3] == "bulk" && urlParts[4] == "lists" {
+		list := urlParts[5]
 		h.handleBulkDelete(w, r, list)
 		return
 	}
@@ -128,24 +129,24 @@ func (h *Handler) handleDelete(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleGet handles GETs to these two endpoints:
-//     GET /v1/lists/<listname>/<itemname>
-//     GET /v1/bulk/lists/<listname>?count=ct&after=it
+//     GET /iidy/v1/lists/<listname>/<itemname>
+//     GET /iidy/v1/bulk/lists/<listname>?count=ct&after=it
 // TODO: get rid of X-IIDY headers; use request params instead
 func (h *Handler) handleGet(w http.ResponseWriter, r *http.Request) {
 	urlParts := strings.Split(r.URL.Path, "/")
-	if len(urlParts) < 5 {
+	if len(urlParts) < 6 {
 		errStr := fmt.Sprintf(`"%s" is not a valid %s url`, r.URL.Path, http.MethodGet)
 		printError(w, r, &ErrorMessage{Error: errStr}, http.StatusBadRequest)
 		return
 	}
-	if urlParts[2] == "lists" {
-		list := urlParts[3]
-		item := urlParts[4]
+	if urlParts[3] == "lists" {
+		list := urlParts[4]
+		item := urlParts[5]
 		h.handleSingleGet(w, r, list, item)
 		return
 	}
-	if urlParts[2] == "bulk" && urlParts[3] == "lists" {
-		list := urlParts[4]
+	if urlParts[3] == "bulk" && urlParts[4] == "lists" {
+		list := urlParts[5]
 		h.handleBulkGet(w, r, list)
 		return
 	}
@@ -155,19 +156,19 @@ func (h *Handler) handleGet(w http.ResponseWriter, r *http.Request) {
 }
 
 // handlePost handles POSTs to these three endpoints:
-//     POST /v1/lists/<listname>/<itemname>
-//     POST /v1/bulk/lists/<listname> [itemnames in body]
-//     POST /v1/bulk/lists/<listname>?action=increment [itemnames in body]
+//     POST /iidy/v1/lists/<listname>/<itemname>
+//     POST /iidy/v1/bulk/lists/<listname> [itemnames in body]
+//     POST /iidy/v1/bulk/lists/<listname>?action=increment [itemnames in body]
 func (h *Handler) handlePost(w http.ResponseWriter, r *http.Request) {
 	urlParts := strings.Split(r.URL.Path, "/")
-	if len(urlParts) < 5 {
+	if len(urlParts) < 6 {
 		errStr := fmt.Sprintf(`"%s" is not a valid %s url`, r.URL.Path, http.MethodPost)
 		printError(w, r, &ErrorMessage{Error: errStr}, http.StatusBadRequest)
 		return
 	}
-	if urlParts[2] == "lists" {
-		list := urlParts[3]
-		item := urlParts[4]
+	if urlParts[3] == "lists" {
+		list := urlParts[4]
+		item := urlParts[5]
 		if r.FormValue("action") == "increment" {
 			h.handleSingleIncrement(w, r, list, item)
 		} else {
@@ -175,8 +176,8 @@ func (h *Handler) handlePost(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	if urlParts[2] == "bulk" && urlParts[3] == "lists" {
-		list := urlParts[4]
+	if urlParts[3] == "bulk" && urlParts[4] == "lists" {
+		list := urlParts[5]
 		if r.FormValue("action") == "increment" {
 			h.handleBulkIncrement(w, r, list)
 		} else {
