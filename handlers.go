@@ -6,12 +6,14 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 )
 
 const FinalContentTypeKey string = "final Content-Type"
 const BodyBytesKey string = "bodyBytes"
+const QueryKey string = "query"
 
 // HandledContentTypes are the content types handled
 // by this service.
@@ -87,6 +89,12 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		r = r.WithContext(context.WithValue(r.Context(), BodyBytesKey, bodyBytes))
 	}
+
+	// Parse the query params and make those available in the context.
+	// Our API only supports query params in the URL, not in the request body;
+	// the request body is for bulk payloads.
+	query := r.URL.Query()
+	r = r.WithContext(context.WithValue(r.Context(), QueryKey, query))
 
 	// Tell the client to take the "Content-Type header seriously.
 	w.Header().Set("X-Content-Type-Options", "nosniff")
@@ -180,10 +188,13 @@ func (h *Handler) handlePost(w http.ResponseWriter, r *http.Request) {
 		printError(w, r, &ErrorMessage{Error: errStr}, http.StatusBadRequest)
 		return
 	}
+
+	query := r.Context().Value(QueryKey).(url.Values)
+
 	if urlParts[3] == "lists" {
 		list := urlParts[4]
 		item := urlParts[5]
-		if r.FormValue("action") == "increment" {
+		if query.Get("action") == "increment" {
 			h.handleSingleIncrement(w, r, list, item)
 		} else {
 			h.handleSingleInsert(w, r, list, item)
@@ -192,7 +203,7 @@ func (h *Handler) handlePost(w http.ResponseWriter, r *http.Request) {
 	}
 	if urlParts[3] == "bulk" && urlParts[4] == "lists" {
 		list := urlParts[5]
-		if r.FormValue("action") == "increment" {
+		if query.Get("action") == "increment" {
 			h.handleBulkIncrement(w, r, list)
 		} else {
 			h.handleBulkInsert(w, r, list)
