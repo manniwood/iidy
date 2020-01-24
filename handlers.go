@@ -11,6 +11,7 @@ import (
 )
 
 const FinalContentTypeKey string = "final Content-Type"
+const BodyBytesKey string = "bodyBytes"
 
 // HandledContentTypes are the content types handled
 // by this service.
@@ -65,6 +66,7 @@ type Handler struct {
 // all traffic to "/". It looks at the request and then delegates to more
 // specific handlers depending on the request method.
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+
 	contentType := r.Header.Get("Content-Type")
 	_, ok := HandledContentTypes[contentType]
 	if contentType == "" || !ok {
@@ -73,6 +75,18 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		contentType = "text/plain"
 	}
 	r = r.WithContext(context.WithValue(r.Context(), FinalContentTypeKey, contentType))
+
+	// Fetch the body now, defensively. Things like r.FormValue
+	// can fetch the body, and then subsequent calls to get the body fail.
+	if r.Body != nil {
+		bodyBytes, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			errStr := fmt.Sprintf("Error reading body: %v", err)
+			printError(w, r, &ErrorMessage{Error: errStr}, http.StatusBadRequest)
+			return
+		}
+		r = r.WithContext(context.WithValue(r.Context(), BodyBytesKey, bodyBytes))
+	}
 
 	// Tell the client to take the "Content-Type header seriously.
 	w.Header().Set("X-Content-Type-Options", "nosniff")
@@ -256,6 +270,9 @@ func getItemsFromBody(contentType string, bodyBytes []byte) ([]string, error) {
 }
 
 func getItemsFromJSON(bodyBytes []byte) ([]string, error) {
+	if bodyBytes == nil || len(bodyBytes) == 0 {
+		return nil, nil
+	}
 	var msg *ItemListMessage
 	err := json.Unmarshal(bodyBytes, &msg)
 	if err != nil {
@@ -265,6 +282,9 @@ func getItemsFromJSON(bodyBytes []byte) ([]string, error) {
 }
 
 func getScrubbedLines(bodyBytes []byte) []string {
+	if bodyBytes == nil || len(bodyBytes) == 0 {
+		return nil
+	}
 	bodyString := string(bodyBytes[:])
 	// be nice and trim leading and trailing space from body first.
 	bodyString = strings.TrimSpace(bodyString)
@@ -275,16 +295,12 @@ func getScrubbedLines(bodyBytes []byte) []string {
 // list, and sets their completion attempt counts to 0. The response contains
 // the number of items successfully inserted, generally len(items) or 0.
 func (h *Handler) handleBulkInsert(w http.ResponseWriter, r *http.Request, list string) {
-	if r.Body == nil {
+	v := r.Context().Value(BodyBytesKey)
+	if v == nil {
 		printSuccess(w, r, &AddedMessage{Added: 0}, http.StatusOK)
 		return
 	}
-	bodyBytes, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		errStr := fmt.Sprintf("Error reading body: %v", err)
-		printError(w, r, &ErrorMessage{Error: errStr}, http.StatusBadRequest)
-		return
-	}
+	bodyBytes := v.([]byte)
 	items, err := getItemsFromBody(fmt.Sprintf("%s", r.Context().Value(FinalContentTypeKey)), bodyBytes)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to parse list of items from request body: %v", err)
@@ -342,16 +358,12 @@ func (h *Handler) handleBulkGet(w http.ResponseWriter, r *http.Request, list str
 // in the specified list. The response contains the
 // number of items successfully incremented, generally len(items) or 0.
 func (h *Handler) handleBulkIncrement(w http.ResponseWriter, r *http.Request, list string) {
-	if r.Body == nil {
+	v := r.Context().Value(BodyBytesKey)
+	if v == nil {
 		printSuccess(w, r, &IncrementedMessage{Incremented: 0}, http.StatusOK)
 		return
 	}
-	bodyBytes, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		errStr := fmt.Sprintf("Error reading body: %v", err)
-		http.Error(w, errStr, http.StatusBadRequest)
-		return
-	}
+	bodyBytes := v.([]byte)
 	items, err := getItemsFromBody(fmt.Sprintf("%s", r.Context().Value(FinalContentTypeKey)), bodyBytes)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to parse list of items from request body: %v", err)
@@ -372,16 +384,12 @@ func (h *Handler) handleBulkIncrement(w http.ResponseWriter, r *http.Request, li
 // from the specified list. The response contains the
 // number of items successfully deleted, generally len(items) or 0.
 func (h *Handler) handleBulkDelete(w http.ResponseWriter, r *http.Request, list string) {
-	if r.Body == nil {
+	v := r.Context().Value(BodyBytesKey)
+	if v == nil {
 		printSuccess(w, r, &DeletedMessage{Deleted: 0}, http.StatusOK)
 		return
 	}
-	bodyBytes, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		errStr := fmt.Sprintf("Error reading body: %v", err)
-		http.Error(w, errStr, http.StatusBadRequest)
-		return
-	}
+	bodyBytes := v.([]byte)
 	items, err := getItemsFromBody(fmt.Sprintf("%s", r.Context().Value(FinalContentTypeKey)), bodyBytes)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to parse list of items from request body: %v", err)
