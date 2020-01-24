@@ -1,13 +1,12 @@
 
-1. update README for new API
+1. switch from headers to query vars for pager args
 
-2. consider text/template for pg fetcher thingie
+2. update README to show JSON API
 
-Next steps:
-- do a PostgreSQL impl
+3. consider text/template for pg fetcher query building
+
+4. use the get-only-so-much body reader to prevent DOS
+
+Future:
 - do a Redis impl
-- add bulk add capabilities
-- add bulk get capabilities
-- add bulk inc capabilities
-- add bulk del capabilities
 

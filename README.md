@@ -5,13 +5,15 @@
 # IIDY - Is It Done Yet?
 
 IIDY is a little project I set up to play with Go. It's meant to explore ideas
-more than it is meant to be a production-ready product.
+more than it is meant to be a production-ready product. One restriction I set
+for myself was to see how much I could accomplish using just the Go standard
+library.
 
 IIDY is a simple yet scalable task list (attempt list) with a PostgreSQL
 backend. It also provides a REST API.
 
 The basic problem IIDY wants to solve is to be an attempt list for millions
-or billions of items. An example use case is tracking backing up a few million
+or billions of items. An example use case is trying to download a few million
 files, where not every attempt will be initially successful. One would want to
 track how many attempts were made per file, in addition to removing files whose
 downloads were successful.
@@ -40,27 +42,28 @@ And now, run IIDY:
 Now, you can play with IIDY through any HTTP client. Here are some examples
 using curl:
 
-    $ curl localhost:8080/lists/downloads/a.txt
+    $ curl localhost:8080/iidy/v1/lists/downloads/a.txt
     Not found.
 
-    $ curl -X PUT localhost:8080/lists/downloads/a.txt
+    $ curl -X POST localhost:8080/iidy/v1/lists/downloads/a.txt
+    ADDED 1
 
-    $ curl localhost:8080/lists/downloads/a.txt
+    $ curl localhost:8080/iidy/v1/lists/downloads/a.txt
     0
 
-    $ curl -X INCREMENT localhost:8080/lists/downloads/a.txt
+    $ curl -X POST localhost:8080/iidy/v1/lists/downloads/a.txt?action=increment
     INCREMENTED 1
 
-    $ curl localhost:8080/lists/downloads/a.txt
+    $ curl localhost:8080/iidy/v1/lists/downloads/a.txt
     1
 
-    $ curl -X DELETE localhost:8080/lists/downloads/a.txt
+    $ curl -X DELETE localhost:8080/iidy/v1/lists/downloads/a.txt
     DELETED 1
 
-    $ curl localhost:8080/lists/downloads/a.txt
+    $ curl localhost:8080/iidy/v1/lists/downloads/a.txt
     Not found.
 
-    $ curl -X BULKPUT --data-binary @- localhost:8080/lists/downloads
+    $ curl -X POST --data-binary @- --no-buffer localhost:8080/iidy/v1/bulk/lists/downloads
     b.txt
     c.txt
     d.txt
@@ -72,21 +75,21 @@ using curl:
     ^D
     ADDED 8
 
-    $ curl -X BULKGET -H "X-IIDY-Count: 2" localhost:8080/lists/downloads
+    $ curl -H "X-IIDY-Count: 2" localhost:8080/iidy/v1/bulk/lists/downloads
     b.txt 0
     c.txt 0
 
-    $ curl -X BULKGET -H "X-IIDY-Count: 2" -H "X-IIDY-After-Item: c.txt" localhost:8080/lists/downloads
+    $ curl -H "X-IIDY-Count: 2" -H "X-IIDY-After-Item: c.txt" localhost:8080/iidy/v1/bulk/lists/downloads
     d.txt 0
     e.txt 0
 
-    $ curl -X BULKGET -H "X-IIDY-Count: 4" -H "X-IIDY-After-Item: e.txt" localhost:8080/lists/downloads
+    $ curl -H "X-IIDY-Count: 4" -H "X-IIDY-After-Item: e.txt" localhost:8080/iidy/v1/bulk/lists/downloads
     f.txt 0
     g.txt 0
     h.txt 0
     i.txt 0
 
-    $ curl -X BULKINCREMENT --data-binary @- localhost:8080/lists/downloads
+    $ curl --data-binary @- localhost:8080/iidy/v1/bulk/lists/downloads?action=increment
     b.txt
     c.txt
     d.txt
@@ -94,7 +97,7 @@ using curl:
     ^D
     INCREMENTED 4
 
-    $ curl -X BULKGET -H "X-IIDY-Count: 100" localhost:8080/lists/downloads
+    $ curl -H "X-IIDY-Count: 100" localhost:8080/iidy/v1/bulk/lists/downloads
     b.txt 1
     c.txt 1
     d.txt 1
@@ -104,7 +107,7 @@ using curl:
     h.txt 0
     i.txt 0
 
-    $ curl -X BULKDELETE --data-binary @- localhost:8080/lists/downloads
+    $ curl -X DELETE --data-binary @- localhost:8080/iidy/v1/bulk/lists/downloads
     d.txt
     e.txt
     f.txt
@@ -112,7 +115,7 @@ using curl:
     ^D
     DELETED 4
 
-    $ curl -X BULKGET -H "X-IIDY-Count: 100" localhost:8080/lists/downloads
+    $ curl -H "X-IIDY-Count: 100" localhost:8080/iidy/v1/bulk/lists/downloads
     b.txt 1
     c.txt 1
     h.txt 0
