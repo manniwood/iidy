@@ -152,8 +152,7 @@ func (h *Handler) handleDelete(w http.ResponseWriter, r *http.Request) {
 
 // handleGet handles GETs to these two endpoints:
 //     GET /iidy/v1/lists/<listname>/<itemname>
-//     GET /iidy/v1/bulk/lists/<listname>?count=ct&after=it
-// TODO: get rid of X-IIDY headers; use request params instead
+//     GET /iidy/v1/bulk/lists/<listname>?count=ct&after_id=it
 func (h *Handler) handleGet(w http.ResponseWriter, r *http.Request) {
 	urlParts := strings.Split(r.URL.Path, "/")
 	if len(urlParts) < 6 {
@@ -328,33 +327,34 @@ func (h *Handler) handleBulkInsert(w http.ResponseWriter, r *http.Request, list 
 	printSuccess(w, r, &AddedMessage{Added: count}, http.StatusCreated)
 }
 
-// handleBulkGet requires the "X-IIDY-Count" header, and takes an optional
-// "X-IIDY-After-Item" header. It returns a response body of list items;
+// handleBulkGet requires the "count" query arg, and takes an optional
+// "after_id" query arg. It returns a response body of list items;
 // each list item shows the number of attempts to
-// complete that list item. "X-IIDY-Count" determines how many items are
+// complete that list item. "count" determines how many items are
 // returned (from
-// the sorted list). "X-IIDY-After-Item" determines the offset in the list;
+// the sorted list). "after_id" determines the offset in the list;
 // when set to the empty string, we start at the beginning of the list; when
 // set to an item (generally the last item from a previous call to this
 // handler) we start after that item in the list.
 func (h *Handler) handleBulkGet(w http.ResponseWriter, r *http.Request, list string) {
-	startID := r.Header.Get("X-IIDY-After-Item")
-	countStr := r.Header.Get("X-IIDY-Count")
+	query := r.Context().Value(QueryKey).(url.Values)
+	afterID := query.Get("after_id")
+	countStr := query.Get("count")
 	if countStr == "" {
-		printError(w, r, &ErrorMessage{Error: "Header not found: X-IIDY-Count"},
+		printError(w, r, &ErrorMessage{Error: "Query arg not found: count"},
 			http.StatusBadRequest)
 		return
 	}
 	count, err := strconv.Atoi(countStr)
 	if err != nil {
-		errStr := fmt.Sprintf("For header X-IIDY-Count, %v is not a number: %v", countStr, err)
+		errStr := fmt.Sprintf("For query arg count, %v is not a number: %v", countStr, err)
 		printError(w, r, &ErrorMessage{Error: errStr}, http.StatusInternalServerError)
 		return
 	}
 	if count == 0 {
 		return
 	}
-	listEntries, err := h.Store.BulkGet(r.Context(), list, startID, count)
+	listEntries, err := h.Store.BulkGet(r.Context(), list, afterID, count)
 	if len(listEntries) == 0 {
 		// Nothing found, so we are done!
 		return

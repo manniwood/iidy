@@ -346,14 +346,16 @@ func TestBulkGetHandler(t *testing.T) {
 			} else {
 				want = test.wantJSON
 			}
-			req, err := http.NewRequest("GET", "/iidy/v1/bulk/lists/downloads", nil)
+
+			url := "/iidy/v1/bulk/lists/downloads?count=2"
+			if test.afterItem != "" {
+				url += "&after_id="
+				url += test.afterItem
+			}
+			req, err := http.NewRequest("GET", url, nil)
 			if err != nil {
 				t.Fatal(err)
 			}
-			if test.afterItem != "" {
-				req.Header.Set("X-IIDY-After-Item", test.afterItem)
-			}
-			req.Header.Set("X-IIDY-Count", "2")
 			req.Header.Set("Content-Type", mime)
 			rr := httptest.NewRecorder()
 			h := &Handler{Store: s}
@@ -375,11 +377,10 @@ func TestBulkGetHandler(t *testing.T) {
 
 func TestBulkGetHandlerError(t *testing.T) {
 	// What if we bulk get from a list that doesn't exist?
-	req, err := http.NewRequest("GET", "/iidy/v1/bulk/lists/i_do_not_exist", nil)
+	req, err := http.NewRequest("GET", "/iidy/v1/bulk/lists/i_do_not_exist?count=2", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	req.Header.Set("X-IIDY-Count", "2")
 	rr := httptest.NewRecorder()
 	s := getEmptyStore(t)
 	h := &Handler{Store: s}

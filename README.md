@@ -82,15 +82,15 @@ i.txt
 '
 ADDED 8
 
-$ curl -H "X-IIDY-Count: 2" localhost:8080/iidy/v1/bulk/lists/downloads
+$ curl localhost:8080/iidy/v1/bulk/lists/downloads?count=2
 b.txt 0
 c.txt 0
 
-$ curl -H "X-IIDY-Count: 2" -H "X-IIDY-After-Item: c.txt" localhost:8080/iidy/v1/bulk/lists/downloads
+$ curl "localhost:8080/iidy/v1/bulk/lists/downloads?count=2&after_id=c.txt"
 d.txt 0
 e.txt 0
 
-$ curl -H "X-IIDY-Count: 4" -H "X-IIDY-After-Item: e.txt" localhost:8080/iidy/v1/bulk/lists/downloads
+$ curl "localhost:8080/iidy/v1/bulk/lists/downloads?count=4&after_id=e.txt"
 f.txt 0
 g.txt 0
 h.txt 0
@@ -104,7 +104,7 @@ e.txt
 '
 INCREMENTED 4
 
-$ curl -H "X-IIDY-Count: 100" localhost:8080/iidy/v1/bulk/lists/downloads
+$ curl localhost:8080/iidy/v1/bulk/lists/downloads?count=100
 b.txt 1
 c.txt 1
 d.txt 1
@@ -122,7 +122,7 @@ g.txt
 '
 DELETED 4
 
-$ curl -H "X-IIDY-Count: 100" localhost:8080/iidy/v1/bulk/lists/downloads
+$ curl localhost:8080/iidy/v1/bulk/lists/downloads?count=100
 b.txt 1
 c.txt 1
 h.txt 0
