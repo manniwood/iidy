@@ -130,3 +130,96 @@ i.txt 0
 ```
 
 
+Here are the same examples using JSON:
+
+```
+$ curl -H "Content-type: application/json" localhost:8080/iidy/v1/lists/downloads/a.txt
+{"error":"Not found."}
+
+$ curl -X POST -H "Content-type: application/json" localhost:8080/iidy/v1/lists/downloads/a.txt
+{"added":1}
+
+$ curl -H "Content-type: application/json" localhost:8080/iidy/v1/lists/downloads/a.txt
+{"item":"a.txt","attempts":0}
+
+$ curl -X POST -H "Content-type: application/json" localhost:8080/iidy/v1/lists/downloads/a.txt?action=increment
+{"incremented":1}
+
+$ curl -H "Content-type: application/json" localhost:8080/iidy/v1/lists/downloads/a.txt
+{"item":"a.txt","attempts":1}
+
+$ curl -X DELETE -H "Content-type: application/json" localhost:8080/iidy/v1/lists/downloads/a.txt
+{"deleted":1}
+
+$ curl -H "Content-type: application/json" localhost:8080/iidy/v1/lists/downloads/a.txt
+{"error":"Not found."}
+
+$ curl -X POST -H "Content-type: application/json" localhost:8080/iidy/v1/bulk/lists/downloads -d '
+{"items":[
+"b.txt",
+"c.txt",
+"d.txt",
+"e.txt",
+"f.txt",
+"g.txt",
+"h.txt",
+"i.txt"]}
+'
+{"added":8}
+
+$ curl -H "Content-type: application/json" localhost:8080/iidy/v1/bulk/lists/downloads?count=2
+{"listentries":[
+{"item":"b.txt","attempts":0},
+{"item":"c.txt","attempts":0}]}
+
+$ curl -H "Content-type: application/json" "localhost:8080/iidy/v1/bulk/lists/downloads?count=2&after_id=c.txt"
+{"listentries":[
+{"item":"d.txt","attempts":0},
+{"item":"e.txt","attempts":0}]}
+
+$ curl -H "Content-type: application/json" "localhost:8080/iidy/v1/bulk/lists/downloads?count=4&after_id=e.txt"
+{"listentries":[
+{"item":"f.txt","attempts":0},
+{"item":"g.txt","attempts":0},
+{"item":"h.txt","attempts":0},
+{"item":"i.txt","attempts":0}]}
+
+$ curl -H "Content-type: application/json" localhost:8080/iidy/v1/bulk/lists/downloads?action=increment -d '
+{"items":[
+"b.txt",
+"c.txt",
+"d.txt",
+"e.txt"]}
+'
+{"incremented":4}
+
+$ curl -H "Content-type: application/json" localhost:8080/iidy/v1/bulk/lists/downloads?count=100
+{"listentries":[
+{"item":"b.txt","attempts":1},
+{"item":"c.txt","attempts":1},
+{"item":"d.txt","attempts":1},
+{"item":"e.txt","attempts":1},
+{"item":"f.txt","attempts":0},
+{"item":"g.txt","attempts":0},
+{"item":"h.txt","attempts":0},
+{"item":"i.txt","attempts":0}]}
+
+$ curl -X DELETE -H "Content-type: application/json" localhost:8080/iidy/v1/bulk/lists/downloads -d '
+{"items":[
+"d.txt",
+"e.txt",
+"f.txt",
+"g.txt"]}
+'
+{"deleted":4}
+
+$ curl -H "Content-type: application/json" localhost:8080/iidy/v1/bulk/lists/downloads?count=100
+{"listentries":[
+{"item":"b.txt","attempts":1},
+{"item":"c.txt","attempts":1},
+{"item":"h.txt","attempts":0},
+{"item":"i.txt","attempts":0}]}
+```
+
+
+

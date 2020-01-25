@@ -264,9 +264,7 @@ func (h *Handler) handleSingleGet(w http.ResponseWriter, r *http.Request, list s
 		printError(w, r, &ErrorMessage{Error: "Not found."}, http.StatusNotFound)
 		return
 	}
-	// NOTE: taking advantage of the fact that a bare number is valid
-	// text/plain as well as valid JSON!
-	fmt.Fprintf(w, "%d\n", attempts)
+	printSuccess(w, r, &ListEntry{Item: item, Attempts: attempts}, http.StatusOK)
 }
 
 func getItemsFromBody(contentType string, bodyBytes []byte) ([]string, error) {
@@ -470,6 +468,9 @@ func printSuccess(w http.ResponseWriter, r *http.Request, v interface{}, code in
 		case *DeletedMessage:
 			m := v.(*DeletedMessage)
 			fmt.Fprintf(w, "DELETED %d\n", m.Deleted)
+		case *ListEntry:
+			m := v.(*ListEntry)
+			fmt.Fprintf(w, "%d\n", m.Attempts)
 		default:
 			fmt.Printf("Could not determine type of: %v", v)
 		}

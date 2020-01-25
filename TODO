@@ -1,13 +1,12 @@
-
-2. update README to show JSON API
-
 3. consider text/template for pg fetcher query building
 
 4. use the get-only-so-much body reader to prevent DOS
 
-5. add conf go binary so different port can be used on startup
+5. add conf to binary so different port can be used on startup
 
 6. make a design document
+
+7. Add "making services with Go" notes to design document
 
 Future:
 - do a Redis impl
