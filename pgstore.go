@@ -139,10 +139,10 @@ func (p *PgStore) DeleteOne(ctx context.Context, list string, item string) (int6
 	return commandTag.RowsAffected(), nil
 }
 
-// Inc increments the number of attempts to complete an item from a list.
+// IncrementOne increments the number of attempts to complete an item from a list.
 // The first return value is the number of items found and incremented
 // (1 or 0).
-func (p *PgStore) Inc(ctx context.Context, list string, item string) (int64, error) {
+func (p *PgStore) IncrementOne(ctx context.Context, list string, item string) (int64, error) {
 	commandTag, err := p.pool.Exec(ctx, `
 		update lists
 		   set attempts = attempts + 1

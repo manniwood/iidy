@@ -107,12 +107,12 @@ func TestDeleteOne(t *testing.T) {
 	}
 }
 
-func TestInc(t *testing.T) {
+func TestIncrementOne(t *testing.T) {
 	s := getEmptyStore(t)
 	addSingleStartingItem(t, s)
 
 	// Does incrementing an item's attempts work?
-	count, err := s.Inc(context.Background(), "downloads", "kernel.tar.gz")
+	count, err := s.IncrementOne(context.Background(), "downloads", "kernel.tar.gz")
 	if err != nil {
 		t.Errorf("Error trying to increment: %v", err)
 	}
@@ -133,7 +133,7 @@ func TestInc(t *testing.T) {
 	}
 
 	// What about incrementing an item that's not there?
-	count, err = s.Inc(context.Background(), "downloads", "I do not exist")
+	count, err = s.IncrementOne(context.Background(), "downloads", "I do not exist")
 	if err != nil {
 		t.Errorf("Error trying to increment item from list: %v", err)
 	}
@@ -142,7 +142,7 @@ func TestInc(t *testing.T) {
 	}
 
 	// What about incrementing an item from a list that's not there?
-	count, err = s.Inc(context.Background(), "I do not exist", "kernel.tar.gz")
+	count, err = s.IncrementOne(context.Background(), "I do not exist", "kernel.tar.gz")
 	if err != nil {
 		t.Errorf("Error trying to increment item from list: %v", err)
 	}

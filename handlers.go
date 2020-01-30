@@ -252,7 +252,7 @@ func (h *Handler) insertOne(w http.ResponseWriter, r *http.Request, list string,
 // incrementOne increments an item in a list. The returned body text reports
 // the number of items found and incremented (1 or 0).
 func (h *Handler) incrementOne(w http.ResponseWriter, r *http.Request, list string, item string) {
-	count, err := h.Store.Inc(r.Context(), list, item)
+	count, err := h.Store.IncrementOne(r.Context(), list, item)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to increment list item: %v", err)
 		printError(w, r, &ErrorMessage{Error: errStr}, http.StatusInternalServerError)
