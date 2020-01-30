@@ -30,7 +30,7 @@ func TestPostHandler(t *testing.T) {
 	}
 
 	// Did we really add the item?
-	_, ok, err := h.Store.Get(context.Background(), "downloads", "kernel.tar.gz")
+	_, ok, err := h.Store.GetOne(context.Background(), "downloads", "kernel.tar.gz")
 	if err != nil {
 		t.Errorf("Error getting item: %v", err)
 	}
@@ -439,7 +439,7 @@ e`),
 
 		// If we look for incremented items, are they incremented?
 		for _, file := range []string{"a", "b", "c", "d", "e"} {
-			attempts, ok, err := s.Get(context.Background(), "downloads", file)
+			attempts, ok, err := s.GetOne(context.Background(), "downloads", file)
 			if err != nil {
 				t.Errorf("%s: Error getting item: %v", test.name, err)
 			}
@@ -453,7 +453,7 @@ e`),
 
 		// What about non-incremented items? Were they left alone?
 		for _, file := range []string{"f", "g"} {
-			attempts, ok, err := s.Get(context.Background(), "downloads", file)
+			attempts, ok, err := s.GetOne(context.Background(), "downloads", file)
 			if err != nil {
 				t.Errorf("%s: Error getting item: %v", test.name, err)
 			}
@@ -553,7 +553,7 @@ e`),
 
 		// If we look for the deleted items, are they correctly missing?
 		for _, file := range []string{"a", "b", "c", "d", "e"} {
-			_, ok, err := s.Get(context.Background(), "downloads", file)
+			_, ok, err := s.GetOne(context.Background(), "downloads", file)
 			if err != nil {
 				t.Errorf("%s: Error getting item: %v", test.name, err)
 			}
@@ -564,7 +564,7 @@ e`),
 
 		// Were other items left alone?
 		for _, file := range []string{"f", "g"} {
-			attempts, ok, err := s.Get(context.Background(), "downloads", file)
+			attempts, ok, err := s.GetOne(context.Background(), "downloads", file)
 			if err != nil {
 				t.Errorf("%s: Error getting item: %v", test.name, err)
 			}

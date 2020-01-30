@@ -277,7 +277,7 @@ func (h *Handler) deleteOne(w http.ResponseWriter, r *http.Request, list string,
 // an item in a list. When a list or list item is missing, no body will
 // be returned, and a status of 404 will be given.
 func (h *Handler) getOne(w http.ResponseWriter, r *http.Request, list string, item string) {
-	attempts, ok, err := h.Store.Get(r.Context(), list, item)
+	attempts, ok, err := h.Store.GetOne(r.Context(), list, item)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to get list item: %v", err)
 		printError(w, r, &ErrorMessage{Error: errStr}, http.StatusInternalServerError)

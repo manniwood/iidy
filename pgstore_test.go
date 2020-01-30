@@ -27,12 +27,12 @@ func addSingleStartingItem(t *testing.T, s *PgStore) {
 	}
 }
 
-func TestInsertOneAndGet(t *testing.T) {
+func TestInsertOneAndGetOne(t *testing.T) {
 	s := getEmptyStore(t)
 	addSingleStartingItem(t, s)
 
 	// Did we really add the item?
-	attempts, ok, err := s.Get(context.Background(), "downloads", "kernel.tar.gz")
+	attempts, ok, err := s.GetOne(context.Background(), "downloads", "kernel.tar.gz")
 	if err != nil {
 		t.Errorf("Error getting item: %v", err)
 	}
@@ -44,11 +44,11 @@ func TestInsertOneAndGet(t *testing.T) {
 	}
 }
 
-func TestUnhappyGetScenarios(t *testing.T) {
+func TestUnhappyGetOneScenarios(t *testing.T) {
 	s := getEmptyStore(t)
 
 	// What about getting an item that doesn't exist?
-	_, ok, err := s.Get(context.Background(), "downloads", "I do not exist")
+	_, ok, err := s.GetOne(context.Background(), "downloads", "I do not exist")
 	if err != nil {
 		t.Errorf("Error getting item: %v", err)
 	}
@@ -57,7 +57,7 @@ func TestUnhappyGetScenarios(t *testing.T) {
 	}
 
 	// What about getting from a list that doesn't exixt?
-	_, ok, err = s.Get(context.Background(), "I do not exist", "kernel.tar.gz")
+	_, ok, err = s.GetOne(context.Background(), "I do not exist", "kernel.tar.gz")
 	if err != nil {
 		t.Errorf("Error getting item: %v", err)
 	}
@@ -80,7 +80,7 @@ func TestDel(t *testing.T) {
 	}
 
 	// Does getting the deleted value correctly return nothing?
-	_, ok, err := s.Get(context.Background(), "downloads", "kernel.tar.gz")
+	_, ok, err := s.GetOne(context.Background(), "downloads", "kernel.tar.gz")
 	if err != nil {
 		t.Errorf("Error getting item: %v", err)
 	}
@@ -121,7 +121,7 @@ func TestInc(t *testing.T) {
 	}
 
 	// When we get the incremented attempt, is is correct?
-	attempts, ok, err := s.Get(context.Background(), "downloads", "kernel.tar.gz")
+	attempts, ok, err := s.GetOne(context.Background(), "downloads", "kernel.tar.gz")
 	if err != nil {
 		t.Errorf("Error getting item: %v", err)
 	}
@@ -166,7 +166,7 @@ func TestInsertMany(t *testing.T) {
 
 	// If we get the list items, do they exist?
 	for _, file := range files {
-		attempts, ok, err := s.Get(context.Background(), "downloads", file)
+		attempts, ok, err := s.GetOne(context.Background(), "downloads", file)
 		if err != nil {
 			t.Errorf("Error getting item: %v", err)
 		}
@@ -251,7 +251,7 @@ func TestBulkInc(t *testing.T) {
 
 	// If we look for incremented items, are they incremented?
 	for _, file := range []string{"a", "b", "c", "d", "e"} {
-		attempts, ok, err := s.Get(context.Background(), "downloads", file)
+		attempts, ok, err := s.GetOne(context.Background(), "downloads", file)
 		if err != nil {
 			t.Errorf("Error getting item: %v", err)
 		}
@@ -265,7 +265,7 @@ func TestBulkInc(t *testing.T) {
 
 	// What about non-incremented items? Were they left alone?
 	for _, file := range []string{"f", "g"} {
-		attempts, ok, err := s.Get(context.Background(), "downloads", file)
+		attempts, ok, err := s.GetOne(context.Background(), "downloads", file)
 		if err != nil {
 			t.Errorf("Error getting item: %v", err)
 		}
@@ -302,7 +302,7 @@ func TestBulkDel(t *testing.T) {
 
 	// If we look for the deleted items, are they correctly missing?
 	for _, file := range []string{"a", "b", "c", "d", "e"} {
-		_, ok, err := s.Get(context.Background(), "downloads", file)
+		_, ok, err := s.GetOne(context.Background(), "downloads", file)
 		if err != nil {
 			t.Errorf("Error getting item: %v", err)
 		}
@@ -313,7 +313,7 @@ func TestBulkDel(t *testing.T) {
 
 	// Were other items left alone?
 	for _, file := range []string{"f", "g"} {
-		attempts, ok, err := s.Get(context.Background(), "downloads", file)
+		attempts, ok, err := s.GetOne(context.Background(), "downloads", file)
 		if err != nil {
 			t.Errorf("Error getting item: %v", err)
 		}

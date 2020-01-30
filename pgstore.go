@@ -105,11 +105,11 @@ func (p *PgStore) InsertOne(ctx context.Context, list string, item string) (int6
 	return commandTag.RowsAffected(), nil
 }
 
-// Get returns the number of attempts that were made to complete an item
+// GetOne returns the number of attempts that were made to complete an item
 // in a list. When a list or list item is missing, the number of attempts
 // will be returned as 0, but the second return argument (commonly assiged
 // to "ok") will be false.
-func (p *PgStore) Get(ctx context.Context, list string, item string) (int, bool, error) {
+func (p *PgStore) GetOne(ctx context.Context, list string, item string) (int, bool, error) {
 	var attempts int
 	err := p.pool.QueryRow(ctx, `
 		select attempts
