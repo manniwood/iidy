@@ -410,7 +410,7 @@ func (h *Handler) incrementMany(w http.ResponseWriter, r *http.Request, list str
 		return
 	}
 
-	count, err := h.Store.BulkInc(r.Context(), list, items)
+	count, err := h.Store.IncrementMany(r.Context(), list, items)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to increment list items: %v", err)
 		http.Error(w, errStr, http.StatusInternalServerError)

@@ -236,12 +236,12 @@ func TestGetMany(t *testing.T) {
 	}
 }
 
-func TestBulkInc(t *testing.T) {
+func TestIncrementMany(t *testing.T) {
 	s := getEmptyStore(t)
 	bulkAddTestItems(t, s)
 
 	// Does bulk increment work?
-	count, err := s.BulkInc(context.Background(), "downloads", []string{"a", "b", "c", "d", "e"})
+	count, err := s.IncrementMany(context.Background(), "downloads", []string{"a", "b", "c", "d", "e"})
 	if err != nil {
 		t.Errorf("Error bulk incrementing: %v", err)
 	}
@@ -278,7 +278,7 @@ func TestBulkInc(t *testing.T) {
 	}
 
 	// What if we bulk increment nothing?
-	count, err = s.BulkInc(context.Background(), "downloads", []string{})
+	count, err = s.IncrementMany(context.Background(), "downloads", []string{})
 	if err != nil {
 		t.Errorf("Error bulk deleting: %v", err)
 	}

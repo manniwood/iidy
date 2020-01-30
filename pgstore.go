@@ -297,10 +297,10 @@ func (p *PgStore) DeleteMany(ctx context.Context, list string, items []string) (
 	return commandTag.RowsAffected(), nil
 }
 
-// BulkInc increments the attempts count for each item in the items slice for
+// IncrementMany increments the attempts count for each item in the items slice for
 // the specified list.  The first return value is the number of items
 // successfully incremented, generally len(items) or 0.
-func (p *PgStore) BulkInc(ctx context.Context, list string, items []string) (int64, error) {
+func (p *PgStore) IncrementMany(ctx context.Context, list string, items []string) (int64, error) {
 	if items == nil || len(items) == 0 {
 		return 0, nil
 	}
