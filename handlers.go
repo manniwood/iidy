@@ -11,8 +11,16 @@ import (
 	"strings"
 )
 
+// FinalContentTypeKey is the key to find the ContentType
+// in the request's context, after we put it there.
 const FinalContentTypeKey string = "final Content-Type"
+
+// BodyBytesKey is the key to find the bytes from the request body
+// in the request's context, after we put them there.
 const BodyBytesKey string = "bodyBytes"
+
+// QueryKey is the key to find the query parameters
+// in the request's context, after we put them there.
 const QueryKey string = "query"
 
 // HandledContentTypes are the content types handled
@@ -64,54 +72,69 @@ type Handler struct {
 	Store *PgStore
 }
 
-// ServeHTTP satisfies the http.Handler interface. It is expected to handle
-// all traffic to "/". It looks at the request and then delegates to more
-// specific handlers depending on the request method.
-func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-
+// contentTypeHeaderToContext puts the Content-Type header into
+// the request's context for use in later steps of processing the
+// request. Reading the request can be a stateful matter, so reading
+// this header and saving it for later circumvents the "have I already
+// read this header?" conundrum.
+func contentTypeHeaderToContext(r *http.Request) *http.Request {
 	contentType := r.Header.Get("Content-Type")
 	_, ok := HandledContentTypes[contentType]
 	if contentType == "" || !ok {
 		// If the client handed us a content type we do not understand,
-		// default to returning text/plain.
+		// default to sending and receiving text/plain.
 		contentType = "text/plain"
 	}
-	r = r.WithContext(context.WithValue(r.Context(), FinalContentTypeKey, contentType))
+	return r.WithContext(context.WithValue(r.Context(), FinalContentTypeKey, contentType))
+}
 
+// requestBodyToContext puts the bytes of the request body into
+// the request's context for use in later steps of processing the
+// request. Reading the request can be a stateful matter, so reading
+// the request body and saving it for later circumvents the "have I already
+// read the request body?" conundrum.
+func requestBodyToContext(r *http.Request) (*http.Request, error) {
 	// Fetch the body now, defensively. Things like r.FormValue
 	// can fetch the body, and then subsequent calls to get the body fail.
 	if r.Body != nil {
 		bodyBytes, err := ioutil.ReadAll(r.Body)
 		if err != nil {
-			errStr := fmt.Sprintf("Error reading body: %v", err)
-			printError(w, r, &ErrorMessage{Error: errStr}, http.StatusBadRequest)
-			return
+			return nil, err
 		}
-		r = r.WithContext(context.WithValue(r.Context(), BodyBytesKey, bodyBytes))
+		return r.WithContext(context.WithValue(r.Context(), BodyBytesKey, bodyBytes)), nil
+	}
+	return r, nil
+}
+
+// queryParamsToContext parses the query params and makes them available
+// in the request's context. Our API only supports query params in the URL,
+// not in the request body; the request body is for API payloads that are
+// either in text/plain or application/json. In other words, we never parse
+// HTTP form vars from the request body.
+func queryParamsToContext(r *http.Request) *http.Request {
+	query := r.URL.Query()
+	return r.WithContext(context.WithValue(r.Context(), QueryKey, query))
+}
+
+// ServeHTTP satisfies the http.Handler interface. It is expected to handle
+// all traffic to the iidy server. It looks at the request and then delegates to more
+// specific handlers depending on the request method.
+func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+
+	r = contentTypeHeaderToContext(r)
+
+	r, err := requestBodyToContext(r)
+	if err != nil {
+		errStr := fmt.Sprintf("Error reading body: %v", err)
+		printError(w, r, &ErrorMessage{Error: errStr}, http.StatusBadRequest)
+		return
 	}
 
-	// Parse the query params and make those available in the context.
-	// Our API only supports query params in the URL, not in the request body;
-	// the request body is for bulk payloads.
-	query := r.URL.Query()
-	r = r.WithContext(context.WithValue(r.Context(), QueryKey, query))
+	r = queryParamsToContext(r)
 
 	// Tell the client to take the "Content-Type header seriously.
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 
-	// TODO: put this in the README instead
-	// REST is not a standard, but we will take inspiration from the book
-	// _How to Build Microservices in Go_:
-	// POST creates a new resource or executes a controller
-	// PUT updates (replaces?) a mutable resource
-	// PATCH does a partial update of amutable resource
-	// DELETE deletes a resource, though for us, would delete delete a whole list?
-	// HEAD is like GET that only returns headers and no body; used to see if a resource exists or not without incurring the overhead of returning the resource
-
-	// TODO: HEAD /v1/lists/<listname>
-	// return 200 if list exists
-	// TODO: HEAD /v1/lists/<listname>/<itemname>
-	// return 200 if list item exists
 	switch r.Method {
 	case http.MethodPost:
 		h.handlePost(w, r)
@@ -120,11 +143,11 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case http.MethodDelete:
 		h.handleDelete(w, r)
 	default:
-		http.Error(w, "Unknown method.", http.StatusBadRequest)
+		printError(w, r, &ErrorMessage{Error: "Unknown method."}, http.StatusBadRequest)
 	}
 }
 
-// handleDelete handles GETs to these two endpoints:
+// handleDelete handles DELETEs to these two endpoints:
 //     DELETE /v1/lists/<listname>/<itemname>
 //     DELETE /v1/bulk/lists/<listname> [itemnames in body]
 func (h *Handler) handleDelete(w http.ResponseWriter, r *http.Request) {
