@@ -287,12 +287,12 @@ func TestBulkInc(t *testing.T) {
 	}
 }
 
-func TestBulkDel(t *testing.T) {
+func TestDeleteMany(t *testing.T) {
 	s := getEmptyStore(t)
 	bulkAddTestItems(t, s)
 
 	// Does bulk delete work?
-	count, err := s.BulkDel(context.Background(), "downloads", []string{"a", "b", "c", "d", "e"})
+	count, err := s.DeleteMany(context.Background(), "downloads", []string{"a", "b", "c", "d", "e"})
 	if err != nil {
 		t.Errorf("Error bulk deleting: %v", err)
 	}
@@ -326,7 +326,7 @@ func TestBulkDel(t *testing.T) {
 	}
 
 	// What if we bulk delete nothing?
-	count, err = s.BulkDel(context.Background(), "downloads", []string{})
+	count, err = s.DeleteMany(context.Background(), "downloads", []string{})
 	if err != nil {
 		t.Errorf("Error bulk deleting: %v", err)
 	}

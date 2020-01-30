@@ -259,10 +259,10 @@ func (p *PgStore) GetMany(ctx context.Context, list string, startID string, coun
 	return items, nil
 }
 
-// BulkDel deletes a slice of items (strings) from the specified list.
+// DeleteMany deletes a slice of items (strings) from the specified list.
 // The first return value is the number of items successfully deleted,
 // generally len(items) or 0.
-func (p *PgStore) BulkDel(ctx context.Context, list string, items []string) (int64, error) {
+func (p *PgStore) DeleteMany(ctx context.Context, list string, items []string) (int64, error) {
 	if items == nil || len(items) == 0 {
 		return 0, nil
 	}

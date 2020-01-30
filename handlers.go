@@ -436,7 +436,7 @@ func (h *Handler) deleteMany(w http.ResponseWriter, r *http.Request, list string
 		return
 	}
 
-	count, err := h.Store.BulkDel(r.Context(), list, items)
+	count, err := h.Store.DeleteMany(r.Context(), list, items)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to delete list items: %v", err)
 		http.Error(w, errStr, http.StatusInternalServerError)
