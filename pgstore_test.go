@@ -66,12 +66,12 @@ func TestUnhappyGetOneScenarios(t *testing.T) {
 	}
 }
 
-func TestDel(t *testing.T) {
+func TestDeleteOne(t *testing.T) {
 	s := getEmptyStore(t)
 	addSingleStartingItem(t, s)
 
 	// Can we successfully delete?
-	count, err := s.Del(context.Background(), "downloads", "kernel.tar.gz")
+	count, err := s.DeleteOne(context.Background(), "downloads", "kernel.tar.gz")
 	if err != nil {
 		t.Errorf("Error trying to delete item from list: %v", err)
 	}
@@ -89,7 +89,7 @@ func TestDel(t *testing.T) {
 	}
 
 	// What about deleting an item that isn't there?
-	count, err = s.Del(context.Background(), "downloads", "I do not exist")
+	count, err = s.DeleteOne(context.Background(), "downloads", "I do not exist")
 	if err != nil {
 		t.Errorf("Error trying to delete item from list: %v", err)
 	}
@@ -98,7 +98,7 @@ func TestDel(t *testing.T) {
 	}
 
 	// What about deleting an item from a list that isn't there?
-	count, err = s.Del(context.Background(), "I do not exist", "kernel.tar.gz")
+	count, err = s.DeleteOne(context.Background(), "I do not exist", "kernel.tar.gz")
 	if err != nil {
 		t.Errorf("Error trying to delete item from non-existent list: %v", err)
 	}

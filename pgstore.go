@@ -126,9 +126,9 @@ func (p *PgStore) GetOne(ctx context.Context, list string, item string) (int, bo
 	return attempts, true, nil
 }
 
-// Del deletes an item from a list. The first return value is the number of
+// DeleteOne deletes an item from a list. The first return value is the number of
 // items that were successfully deleted (1 or 0).
-func (p *PgStore) Del(ctx context.Context, list string, item string) (int64, error) {
+func (p *PgStore) DeleteOne(ctx context.Context, list string, item string) (int64, error) {
 	commandTag, err := p.pool.Exec(ctx, `
 		delete from lists
 		 where list = $1

@@ -264,7 +264,7 @@ func (h *Handler) incrementOne(w http.ResponseWriter, r *http.Request, list stri
 // deleteOne deletes an item from a list. The returned body text reports
 // the number of items found and deleted (1 or 0).
 func (h *Handler) deleteOne(w http.ResponseWriter, r *http.Request, list string, item string) {
-	count, err := h.Store.Del(r.Context(), list, item)
+	count, err := h.Store.DeleteOne(r.Context(), list, item)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to delete list item: %v", err)
 		printError(w, r, &ErrorMessage{Error: errStr}, http.StatusInternalServerError)
