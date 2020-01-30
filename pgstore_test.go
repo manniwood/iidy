@@ -151,12 +151,12 @@ func TestInc(t *testing.T) {
 	}
 }
 
-func TestBulkAdd(t *testing.T) {
+func TestInsertMany(t *testing.T) {
 	s := getEmptyStore(t)
 	files := []string{"kernel.tar.gz", "vim.tar.gz", "robots.txt"}
 
 	// Does bulk add work?
-	count, err := s.BulkAdd(context.Background(), "downloads", files)
+	count, err := s.InsertMany(context.Background(), "downloads", files)
 	if err != nil {
 		t.Errorf("Error bulk inserting: %v", err)
 	}
@@ -179,7 +179,7 @@ func TestBulkAdd(t *testing.T) {
 	}
 
 	// What if we bulk put nothing?
-	count, err = s.BulkAdd(context.Background(), "downloads", []string{})
+	count, err = s.InsertMany(context.Background(), "downloads", []string{})
 	if err != nil {
 		t.Errorf("Error bulk inserting: %v", err)
 	}
@@ -193,7 +193,7 @@ func TestBulkAdd(t *testing.T) {
 func bulkAddTestItems(t *testing.T, s *PgStore) {
 	// Bulk add a bunch of test items.
 	files := []string{"a", "b", "c", "d", "e", "f", "g"}
-	count, err := s.BulkAdd(context.Background(), "downloads", files)
+	count, err := s.InsertMany(context.Background(), "downloads", files)
 	if err != nil {
 		t.Errorf("Error bulk inserting: %v", err)
 	}

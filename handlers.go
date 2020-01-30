@@ -346,7 +346,7 @@ func (h *Handler) insertMany(w http.ResponseWriter, r *http.Request, list string
 		return
 	}
 
-	count, err := h.Store.BulkAdd(r.Context(), list, items)
+	count, err := h.Store.InsertMany(r.Context(), list, items)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to add list items: %v", err)
 		printError(w, r, &ErrorMessage{Error: errStr}, http.StatusInternalServerError)

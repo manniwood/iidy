@@ -154,10 +154,10 @@ func (p *PgStore) Inc(ctx context.Context, list string, item string) (int64, err
 	return commandTag.RowsAffected(), nil
 }
 
-// BulkAdd adds a slice of items (strings) to the specified list, and sets
+// InsertMany adds a slice of items (strings) to the specified list, and sets
 // their completion attempt counts to 0. The first return value is the
 // number of items successfully inserted, generally len(items) or 0.
-func (p *PgStore) BulkAdd(ctx context.Context, list string, items []string) (int64, error) {
+func (p *PgStore) InsertMany(ctx context.Context, list string, items []string) (int64, error) {
 	if items == nil || len(items) == 0 {
 		return 0, nil
 	}
