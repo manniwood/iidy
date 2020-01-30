@@ -18,7 +18,7 @@ func getEmptyStore(t *testing.T) *PgStore {
 // Our tests add this test item over and over,
 // so here it is.
 func addSingleStartingItem(t *testing.T, s *PgStore) {
-	count, err := s.Add(context.Background(), "downloads", "kernel.tar.gz")
+	count, err := s.InsertOne(context.Background(), "downloads", "kernel.tar.gz")
 	if err != nil {
 		t.Errorf("Error adding item: %v", err)
 	}
@@ -27,7 +27,7 @@ func addSingleStartingItem(t *testing.T, s *PgStore) {
 	}
 }
 
-func TestAddAndGet(t *testing.T) {
+func TestInsertOneAndGet(t *testing.T) {
 	s := getEmptyStore(t)
 	addSingleStartingItem(t, s)
 

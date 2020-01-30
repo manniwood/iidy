@@ -61,6 +61,8 @@ func NewPgStore(connectionURL string) (*PgStore, error) {
 }
 
 // String gives us a string representation of the config for the data store.
+// This is handy for debugging, or just for printing the connection info
+// at program startup.
 func (p *PgStore) String() string {
 	conf, err := pgxpool.ParseConfig(p.connectionURL)
 	if err != nil {
@@ -90,9 +92,9 @@ func (p *PgStore) Nuke(ctx context.Context) error {
 	return nil
 }
 
-// Add adds an item to a list. If the list does not already exist,
+// InsertOne adds an item to a list. If the list does not already exist,
 // it will be created.
-func (p *PgStore) Add(ctx context.Context, list string, item string) (int64, error) {
+func (p *PgStore) InsertOne(ctx context.Context, list string, item string) (int64, error) {
 	commandTag, err := p.pool.Exec(ctx, `
 		insert into lists
 		(list, item)

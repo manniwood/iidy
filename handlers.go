@@ -240,7 +240,7 @@ func (h *Handler) post(w http.ResponseWriter, r *http.Request) {
 // insertOne adds an item to a list. If the list does not already exist,
 // the list will be created.
 func (h *Handler) insertOne(w http.ResponseWriter, r *http.Request, list string, item string) {
-	count, err := h.Store.Add(r.Context(), list, item)
+	count, err := h.Store.InsertOne(r.Context(), list, item)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to add list item: %v", err)
 		printError(w, r, &ErrorMessage{Error: errStr}, http.StatusInternalServerError)
