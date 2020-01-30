@@ -1,4 +1,4 @@
-package iidy
+package pgstore
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func getEmptyStore(t *testing.T) *PgStore {
+func GetEmptyStore(t *testing.T) *PgStore {
 	p, err := NewPgStore("")
 	if err != nil {
 		t.Errorf("Error instantiating PgStore: %v", err)
@@ -28,7 +28,7 @@ func addSingleStartingItem(t *testing.T, s *PgStore) {
 }
 
 func TestInsertOneAndGetOne(t *testing.T) {
-	s := getEmptyStore(t)
+	s := GetEmptyStore(t)
 	addSingleStartingItem(t, s)
 
 	// Did we really add the item?
@@ -45,7 +45,7 @@ func TestInsertOneAndGetOne(t *testing.T) {
 }
 
 func TestUnhappyGetOneScenarios(t *testing.T) {
-	s := getEmptyStore(t)
+	s := GetEmptyStore(t)
 
 	// What about getting an item that doesn't exist?
 	_, ok, err := s.GetOne(context.Background(), "downloads", "I do not exist")
@@ -67,7 +67,7 @@ func TestUnhappyGetOneScenarios(t *testing.T) {
 }
 
 func TestDeleteOne(t *testing.T) {
-	s := getEmptyStore(t)
+	s := GetEmptyStore(t)
 	addSingleStartingItem(t, s)
 
 	// Can we successfully delete?
@@ -108,7 +108,7 @@ func TestDeleteOne(t *testing.T) {
 }
 
 func TestIncrementOne(t *testing.T) {
-	s := getEmptyStore(t)
+	s := GetEmptyStore(t)
 	addSingleStartingItem(t, s)
 
 	// Does incrementing an item's attempts work?
@@ -152,7 +152,7 @@ func TestIncrementOne(t *testing.T) {
 }
 
 func TestInsertBatch(t *testing.T) {
-	s := getEmptyStore(t)
+	s := GetEmptyStore(t)
 	files := []string{"kernel.tar.gz", "vim.tar.gz", "robots.txt"}
 
 	// Does bulk add work?
@@ -212,7 +212,7 @@ func TestGetBatch(t *testing.T) {
 		{"d", []ListEntry{{"e", 0}, {"f", 0}}},
 		{"f", []ListEntry{{"g", 0}}},
 	}
-	s := getEmptyStore(t)
+	s := GetEmptyStore(t)
 	bulkAddTestItems(t, s)
 
 	// If we bulk get 2 items at a time, does everything work?
@@ -237,7 +237,7 @@ func TestGetBatch(t *testing.T) {
 }
 
 func TestIncrementBatch(t *testing.T) {
-	s := getEmptyStore(t)
+	s := GetEmptyStore(t)
 	bulkAddTestItems(t, s)
 
 	// Does bulk increment work?
@@ -288,7 +288,7 @@ func TestIncrementBatch(t *testing.T) {
 }
 
 func TestDeleteBatch(t *testing.T) {
-	s := getEmptyStore(t)
+	s := GetEmptyStore(t)
 	bulkAddTestItems(t, s)
 
 	// Does bulk delete work?

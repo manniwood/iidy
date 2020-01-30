@@ -1,40 +1,87 @@
 /*
-Package iidy is a PostgreSQL-backed checklist or "attempt list".
+Package iidy is a REST-like checklist or "attempt list"
+with a PostgreSQL backend.
 
-Sample Use Case
+Sample interaction:
 
-Let's say you want to download a million items, and you suspect not all
-items will get successfully downloaded on the first attempt.
+	$ curl localhost:8080/iidy/v1/lists/downloads/a.txt
+	Not found.
 
-Start with a list of the items to be downloaded.
+	$ curl -X POST localhost:8080/iidy/v1/lists/downloads/a.txt
+	ADDED 1
 
-    connectionURL := "postgresql://iidy:password@localhost:5432/iidy?pool_max_conns=5&application_name=iidy"
-    s, _ := iidy.NewPgStore(connectionURL)
-    listName := "downloads"
-    listItems := []string{"a.txt", "b.txt", "c.txt", "d.txt", "e.txt", "f.txt"}
-    s.AddBatch(context.Background(), listName, listItems)
+	$ curl localhost:8080/iidy/v1/lists/downloads/a.txt
+	0
 
-A worker can get a certain number of items to work on:
+	$ curl -X POST localhost:8080/iidy/v1/lists/downloads/a.txt?action=increment
+	INCREMENTED 1
 
-    // gets "a.txt", "b.txt", "c.txt"
-    items, _ := s.GetBatch(context.Background(), listName, "", 3)
+	$ curl localhost:8080/iidy/v1/lists/downloads/a.txt
+	1
 
-For items that were unsuccessfully downloaded, the number of failed attempts
-is incremented for that item. (A business rule can be set to abandon
-downloading an item after a certain number of attempts.)
+	$ curl -X DELETE localhost:8080/iidy/v1/lists/downloads/a.txt
+	DELETED 1
 
-    count, _ := s.IncrementBatch(context.Background(), ListName, []string{"a.txt", "c.txt"})
+	$ curl localhost:8080/iidy/v1/lists/downloads/a.txt
+	Not found.
 
-Items that were successfully downloaded can be removed from the list.
+	$ curl -X POST localhost:8080/iidy/v1/bulk/lists/downloads -d '
+	b.txt
+	c.txt
+	d.txt
+	e.txt
+	f.txt
+	g.txt
+	h.txt
+	i.txt
+	'
+	ADDED 8
 
-    count, _ := s.DeleteBatch(context.Background(), ListName, []string{"b.txt"})
+	$ curl localhost:8080/iidy/v1/bulk/lists/downloads?count=2
+	b.txt 0
+	c.txt 0
 
-A worker can get more items from the list, starting past the last item in the
-previously-worked-on batch:
+	$ curl "localhost:8080/iidy/v1/bulk/lists/downloads?count=2&after_id=c.txt"
+	d.txt 0
+	e.txt 0
 
-    // gets "d.txt", "e.txt", "f.txt"
-    items, _ := s.GetBatch(context.Background(), listName, "c.txt", 3)
+	$ curl "localhost:8080/iidy/v1/bulk/lists/downloads?count=4&after_id=e.txt"
+	f.txt 0
+	g.txt 0
+	h.txt 0
+	i.txt 0
 
-And the cycle can continue.
+	$ curl localhost:8080/iidy/v1/bulk/lists/downloads?action=increment -d '
+	b.txt
+	c.txt
+	d.txt
+	e.txt
+	'
+	INCREMENTED 4
+
+	$ curl localhost:8080/iidy/v1/bulk/lists/downloads?count=100
+	b.txt 1
+	c.txt 1
+	d.txt 1
+	e.txt 1
+	f.txt 0
+	g.txt 0
+	h.txt 0
+	i.txt 0
+
+	$ curl -X DELETE localhost:8080/iidy/v1/bulk/lists/downloads -d '
+	d.txt
+	e.txt
+	f.txt
+	g.txt
+	'
+	DELETED 4
+
+	$ curl localhost:8080/iidy/v1/bulk/lists/downloads?count=100
+	b.txt 1
+	c.txt 1
+	h.txt 0
+	i.txt 0
+
 */
 package iidy

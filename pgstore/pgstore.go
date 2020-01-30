@@ -1,4 +1,4 @@
-package iidy
+package pgstore
 
 import (
 	"bytes"

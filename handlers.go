@@ -9,6 +9,8 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+
+	"github.com/manniwood/iidy/pgstore"
 )
 
 // FinalContentTypeKey is the key to find the ContentType
@@ -63,13 +65,13 @@ type ItemListMessage struct {
 // ListEntryMessage is a list of entries and their attempts that we
 // serialize/deserialize to/from JSON when using application/json
 type ListEntryMessage struct {
-	ListEntries []ListEntry `json:"listentries"`
+	ListEntries []pgstore.ListEntry `json:"listentries"`
 }
 
 // Handler handles requests to "/lists/". It contains an instance of PgStore,
 // so that it has a place to store list data.
 type Handler struct {
-	Store *PgStore
+	Store *pgstore.PgStore
 }
 
 // contentTypeHeaderToContext puts the Content-Type header into
@@ -287,7 +289,7 @@ func (h *Handler) getOne(w http.ResponseWriter, r *http.Request, list string, it
 		printError(w, r, &ErrorMessage{Error: "Not found."}, http.StatusNotFound)
 		return
 	}
-	printSuccess(w, r, &ListEntry{Item: item, Attempts: attempts}, http.StatusOK)
+	printSuccess(w, r, &pgstore.ListEntry{Item: item, Attempts: attempts}, http.StatusOK)
 }
 
 // getItemsFromBody gets a slice of list items from the request body,
@@ -448,7 +450,7 @@ func (h *Handler) deleteBatch(w http.ResponseWriter, r *http.Request, list strin
 // printListEntries prints list entries to the w, the response writer.
 // This function correctly determines whether JSON or plain text is
 // requested.
-func printListEntries(w http.ResponseWriter, r *http.Request, listEntries []ListEntry) {
+func printListEntries(w http.ResponseWriter, r *http.Request, listEntries []pgstore.ListEntry) {
 	contentType := r.Context().Value(FinalContentTypeKey)
 	if contentType == "application/json" {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -505,8 +507,8 @@ func printSuccess(w http.ResponseWriter, r *http.Request, v interface{}, code in
 		case *DeletedMessage:
 			m := v.(*DeletedMessage)
 			fmt.Fprintf(w, "DELETED %d\n", m.Deleted)
-		case *ListEntry:
-			m := v.(*ListEntry)
+		case *pgstore.ListEntry:
+			m := v.(*pgstore.ListEntry)
 			fmt.Fprintf(w, "%d\n", m.Attempts)
 		default:
 			fmt.Printf("Could not determine type of: %v", v)

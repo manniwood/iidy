@@ -7,6 +7,8 @@ import (
 	"net/http/httptest"
 	"reflect"
 	"testing"
+
+	"github.com/manniwood/iidy/pgstore"
 )
 
 // TODO: any json response bodies should probably be parsed into
@@ -222,7 +224,7 @@ func TestBatchPostHandler(t *testing.T) {
 		mime           string
 		body           []byte
 		expectAfterAdd string
-		expected       []ListEntry
+		expected       []pgstore.ListEntry
 	}{
 		{
 			mime: "text/plain",
@@ -231,7 +233,7 @@ vim.tar.gz
 robots.txt`),
 			expectAfterAdd: "ADDED 3\n",
 			// remember, these come back in alphabetical order
-			expected: []ListEntry{
+			expected: []pgstore.ListEntry{
 				{"kernel.tar.gz", 0},
 				{"robots.txt", 0},
 				{"vim.tar.gz", 0},
@@ -243,7 +245,7 @@ robots.txt`),
 			expectAfterAdd: `{"added":3}
 `,
 			// remember, these come back in alphabetical order
-			expected: []ListEntry{
+			expected: []pgstore.ListEntry{
 				{"kernel.tar.gz", 0},
 				{"robots.txt", 0},
 				{"vim.tar.gz", 0},
@@ -254,7 +256,7 @@ robots.txt`),
 			body:           nil,
 			expectAfterAdd: "ADDED 0\n",
 			// remember, these come back in alphabetical order
-			expected: []ListEntry{},
+			expected: []pgstore.ListEntry{},
 		},
 		{
 			mime: "application/json",
@@ -262,7 +264,7 @@ robots.txt`),
 			expectAfterAdd: `{"added":0}
 `,
 			// remember, these come back in alphabetical order
-			expected: []ListEntry{},
+			expected: []pgstore.ListEntry{},
 		},
 	}
 
@@ -616,5 +618,40 @@ func TestBatchDelHandlerError(t *testing.T) {
 		if rr.Body.String() != test.expected {
 			t.Errorf("%s: Unexpected body: got %v want %v", test.name, rr.Body.String(), test.expected)
 		}
+	}
+}
+
+func getEmptyStore(t *testing.T) *pgstore.PgStore {
+	p, err := pgstore.NewPgStore("")
+	if err != nil {
+		t.Errorf("Error instantiating PgStore: %v", err)
+	}
+	p.Nuke(context.Background())
+	return p
+}
+
+// Our tests add this test item over and over,
+// so here it is.
+func addSingleStartingItem(t *testing.T, s *pgstore.PgStore) {
+	count, err := s.InsertOne(context.Background(), "downloads", "kernel.tar.gz")
+	if err != nil {
+		t.Errorf("Error adding item: %v", err)
+	}
+	if count != 1 {
+		t.Error("Did not properly add item to list.")
+	}
+}
+
+// These items are expected to be in the db at the start
+// of the next few bulk tests.
+func bulkAddTestItems(t *testing.T, s *pgstore.PgStore) {
+	// Batch add a bunch of test items.
+	files := []string{"a", "b", "c", "d", "e", "f", "g"}
+	count, err := s.InsertBatch(context.Background(), "downloads", files)
+	if err != nil {
+		t.Errorf("Error bulk inserting: %v", err)
+	}
+	if count != 7 {
+		t.Errorf("Batch added wrong number of items. Expected 5, got %v", count)
 	}
 }
