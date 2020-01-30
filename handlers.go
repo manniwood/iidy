@@ -137,20 +137,20 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodPost:
-		h.handlePost(w, r)
+		h.post(w, r)
 	case http.MethodGet:
-		h.handleGet(w, r)
+		h.get(w, r)
 	case http.MethodDelete:
-		h.handleDelete(w, r)
+		h.delete(w, r)
 	default:
 		printError(w, r, &ErrorMessage{Error: "Unknown method."}, http.StatusBadRequest)
 	}
 }
 
-// handleDelete handles DELETEs to these two endpoints:
+// delete handles DELETEs to these two endpoints:
 //     DELETE /v1/lists/<listname>/<itemname>
 //     DELETE /v1/bulk/lists/<listname> [itemnames in body]
-func (h *Handler) handleDelete(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) delete(w http.ResponseWriter, r *http.Request) {
 	urlParts := strings.Split(r.URL.Path, "/")
 	if len(urlParts) < 6 {
 		errStr := fmt.Sprintf(`"%s" is not a valid %s url`, r.URL.Path, http.MethodDelete)
@@ -160,12 +160,12 @@ func (h *Handler) handleDelete(w http.ResponseWriter, r *http.Request) {
 	if urlParts[3] == "lists" {
 		list := urlParts[4]
 		item := urlParts[5]
-		h.handleSingleDelete(w, r, list, item)
+		h.deleteOne(w, r, list, item)
 		return
 	}
 	if urlParts[3] == "bulk" && urlParts[4] == "lists" {
 		list := urlParts[5]
-		h.handleBulkDelete(w, r, list)
+		h.deleteMany(w, r, list)
 		return
 	}
 	errStr := fmt.Sprintf(`"%s" is not a valid %s url`, r.URL.Path, http.MethodDelete)
@@ -173,10 +173,10 @@ func (h *Handler) handleDelete(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// handleGet handles GETs to these two endpoints:
+// get handles GETs to these two endpoints:
 //     GET /iidy/v1/lists/<listname>/<itemname>
 //     GET /iidy/v1/bulk/lists/<listname>?count=ct&after_id=it
-func (h *Handler) handleGet(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) get(w http.ResponseWriter, r *http.Request) {
 	urlParts := strings.Split(r.URL.Path, "/")
 	if len(urlParts) < 6 {
 		errStr := fmt.Sprintf(`"%s" is not a valid %s url`, r.URL.Path, http.MethodGet)
@@ -186,12 +186,12 @@ func (h *Handler) handleGet(w http.ResponseWriter, r *http.Request) {
 	if urlParts[3] == "lists" {
 		list := urlParts[4]
 		item := urlParts[5]
-		h.handleSingleGet(w, r, list, item)
+		h.getOne(w, r, list, item)
 		return
 	}
 	if urlParts[3] == "bulk" && urlParts[4] == "lists" {
 		list := urlParts[5]
-		h.handleBulkGet(w, r, list)
+		h.getMany(w, r, list)
 		return
 	}
 	errStr := fmt.Sprintf(`"%s" is not a valid %s url`, r.URL.Path, http.MethodPost)
@@ -199,11 +199,11 @@ func (h *Handler) handleGet(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// handlePost handles POSTs to these three endpoints:
+// post handles POSTs to these three endpoints:
 //     POST /iidy/v1/lists/<listname>/<itemname>
 //     POST /iidy/v1/bulk/lists/<listname> [itemnames in body]
 //     POST /iidy/v1/bulk/lists/<listname>?action=increment [itemnames in body]
-func (h *Handler) handlePost(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) post(w http.ResponseWriter, r *http.Request) {
 	urlParts := strings.Split(r.URL.Path, "/")
 	if len(urlParts) < 6 {
 		errStr := fmt.Sprintf(`"%s" is not a valid %s url`, r.URL.Path, http.MethodPost)
@@ -217,18 +217,18 @@ func (h *Handler) handlePost(w http.ResponseWriter, r *http.Request) {
 		list := urlParts[4]
 		item := urlParts[5]
 		if query.Get("action") == "increment" {
-			h.handleSingleIncrement(w, r, list, item)
+			h.incrementOne(w, r, list, item)
 		} else {
-			h.handleSingleInsert(w, r, list, item)
+			h.insertOne(w, r, list, item)
 		}
 		return
 	}
 	if urlParts[3] == "bulk" && urlParts[4] == "lists" {
 		list := urlParts[5]
 		if query.Get("action") == "increment" {
-			h.handleBulkIncrement(w, r, list)
+			h.incrementMany(w, r, list)
 		} else {
-			h.handleBulkInsert(w, r, list)
+			h.insertMany(w, r, list)
 		}
 		return
 	}
@@ -237,9 +237,9 @@ func (h *Handler) handlePost(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// handleSingleInsert adds an item to a list. If the list does not already exist,
+// insertOne adds an item to a list. If the list does not already exist,
 // the list will be created.
-func (h *Handler) handleSingleInsert(w http.ResponseWriter, r *http.Request, list string, item string) {
+func (h *Handler) insertOne(w http.ResponseWriter, r *http.Request, list string, item string) {
 	count, err := h.Store.Add(r.Context(), list, item)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to add list item: %v", err)
@@ -249,9 +249,9 @@ func (h *Handler) handleSingleInsert(w http.ResponseWriter, r *http.Request, lis
 	printSuccess(w, r, &AddedMessage{Added: count}, http.StatusCreated)
 }
 
-// handleSingleIncrement increments an item in a list. The returned body text reports
+// incrementOne increments an item in a list. The returned body text reports
 // the number of items found and incremented (1 or 0).
-func (h *Handler) handleSingleIncrement(w http.ResponseWriter, r *http.Request, list string, item string) {
+func (h *Handler) incrementOne(w http.ResponseWriter, r *http.Request, list string, item string) {
 	count, err := h.Store.Inc(r.Context(), list, item)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to increment list item: %v", err)
@@ -261,9 +261,9 @@ func (h *Handler) handleSingleIncrement(w http.ResponseWriter, r *http.Request, 
 	printSuccess(w, r, &IncrementedMessage{Incremented: count}, http.StatusOK)
 }
 
-// handleSingleDelete deletes an item from a list. The returned body text reports
+// deleteOne deletes an item from a list. The returned body text reports
 // the number of items found and deleted (1 or 0).
-func (h *Handler) handleSingleDelete(w http.ResponseWriter, r *http.Request, list string, item string) {
+func (h *Handler) deleteOne(w http.ResponseWriter, r *http.Request, list string, item string) {
 	count, err := h.Store.Del(r.Context(), list, item)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to delete list item: %v", err)
@@ -273,10 +273,10 @@ func (h *Handler) handleSingleDelete(w http.ResponseWriter, r *http.Request, lis
 	printSuccess(w, r, &DeletedMessage{Deleted: count}, http.StatusOK)
 }
 
-// handleSingleGet returns the number of attempts that were made to complete
+// getOne returns the number of attempts that were made to complete
 // an item in a list. When a list or list item is missing, no body will
 // be returned, and a status of 404 will be given.
-func (h *Handler) handleSingleGet(w http.ResponseWriter, r *http.Request, list string, item string) {
+func (h *Handler) getOne(w http.ResponseWriter, r *http.Request, list string, item string) {
 	attempts, ok, err := h.Store.Get(r.Context(), list, item)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to get list item: %v", err)
@@ -322,10 +322,10 @@ func getScrubbedLines(bodyBytes []byte) []string {
 	return strings.Split(bodyString, "\n")
 }
 
-// handleBulkInsert adds all of the items in the request body to the specified
+// insertMany adds all of the items in the request body to the specified
 // list, and sets their completion attempt counts to 0. The response contains
 // the number of items successfully inserted, generally len(items) or 0.
-func (h *Handler) handleBulkInsert(w http.ResponseWriter, r *http.Request, list string) {
+func (h *Handler) insertMany(w http.ResponseWriter, r *http.Request, list string) {
 	v := r.Context().Value(BodyBytesKey)
 	if v == nil {
 		printSuccess(w, r, &AddedMessage{Added: 0}, http.StatusOK)
@@ -348,7 +348,7 @@ func (h *Handler) handleBulkInsert(w http.ResponseWriter, r *http.Request, list 
 	printSuccess(w, r, &AddedMessage{Added: count}, http.StatusCreated)
 }
 
-// handleBulkGet requires the "count" query arg, and takes an optional
+// getMany requires the "count" query arg, and takes an optional
 // "after_id" query arg. It returns a response body of list items;
 // each list item shows the number of attempts to
 // complete that list item. "count" determines how many items are
@@ -357,7 +357,7 @@ func (h *Handler) handleBulkInsert(w http.ResponseWriter, r *http.Request, list 
 // when set to the empty string, we start at the beginning of the list; when
 // set to an item (generally the last item from a previous call to this
 // handler) we start after that item in the list.
-func (h *Handler) handleBulkGet(w http.ResponseWriter, r *http.Request, list string) {
+func (h *Handler) getMany(w http.ResponseWriter, r *http.Request, list string) {
 	query := r.Context().Value(QueryKey).(url.Values)
 	afterID := query.Get("after_id")
 	countStr := query.Get("count")
@@ -386,10 +386,10 @@ func (h *Handler) handleBulkGet(w http.ResponseWriter, r *http.Request, list str
 	printListEntries(w, r, listEntries)
 }
 
-// handleBulkIncrement increments all of the items in the request body
+// incrementMany increments all of the items in the request body
 // in the specified list. The response contains the
 // number of items successfully incremented, generally len(items) or 0.
-func (h *Handler) handleBulkIncrement(w http.ResponseWriter, r *http.Request, list string) {
+func (h *Handler) incrementMany(w http.ResponseWriter, r *http.Request, list string) {
 	v := r.Context().Value(BodyBytesKey)
 	if v == nil {
 		printSuccess(w, r, &IncrementedMessage{Incremented: 0}, http.StatusOK)
@@ -412,10 +412,10 @@ func (h *Handler) handleBulkIncrement(w http.ResponseWriter, r *http.Request, li
 	printSuccess(w, r, &IncrementedMessage{Incremented: count}, http.StatusOK)
 }
 
-// handleBulkDelete deletes all of the items in the request body
+// deleteMany deletes all of the items in the request body
 // from the specified list. The response contains the
 // number of items successfully deleted, generally len(items) or 0.
-func (h *Handler) handleBulkDelete(w http.ResponseWriter, r *http.Request, list string) {
+func (h *Handler) deleteMany(w http.ResponseWriter, r *http.Request, list string) {
 	v := r.Context().Value(BodyBytesKey)
 	if v == nil {
 		printSuccess(w, r, &DeletedMessage{Deleted: 0}, http.StatusOK)
