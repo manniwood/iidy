@@ -165,7 +165,7 @@ func (h *Handler) delete(w http.ResponseWriter, r *http.Request) {
 	}
 	if urlParts[3] == "bulk" && urlParts[4] == "lists" {
 		list := urlParts[5]
-		h.deleteMany(w, r, list)
+		h.deleteBatch(w, r, list)
 		return
 	}
 	errStr := fmt.Sprintf(`"%s" is not a valid %s url`, r.URL.Path, http.MethodDelete)
@@ -191,7 +191,7 @@ func (h *Handler) get(w http.ResponseWriter, r *http.Request) {
 	}
 	if urlParts[3] == "bulk" && urlParts[4] == "lists" {
 		list := urlParts[5]
-		h.getMany(w, r, list)
+		h.getBatch(w, r, list)
 		return
 	}
 	errStr := fmt.Sprintf(`"%s" is not a valid %s url`, r.URL.Path, http.MethodPost)
@@ -226,9 +226,9 @@ func (h *Handler) post(w http.ResponseWriter, r *http.Request) {
 	if urlParts[3] == "bulk" && urlParts[4] == "lists" {
 		list := urlParts[5]
 		if query.Get("action") == "increment" {
-			h.incrementMany(w, r, list)
+			h.incrementBatch(w, r, list)
 		} else {
-			h.insertMany(w, r, list)
+			h.insertBatch(w, r, list)
 		}
 		return
 	}
@@ -329,10 +329,10 @@ func getItemsFromPlainText(bodyBytes []byte) []string {
 	return strings.Split(bodyString, "\n")
 }
 
-// insertMany adds all of the items in the request body to the specified
+// insertBatch adds all of the items in the request body to the specified
 // list, and sets their completion attempt counts to 0. The response contains
 // the number of items successfully inserted, generally len(items) or 0.
-func (h *Handler) insertMany(w http.ResponseWriter, r *http.Request, list string) {
+func (h *Handler) insertBatch(w http.ResponseWriter, r *http.Request, list string) {
 	v := r.Context().Value(BodyBytesKey)
 	if v == nil {
 		printSuccess(w, r, &AddedMessage{Added: 0}, http.StatusOK)
@@ -346,7 +346,7 @@ func (h *Handler) insertMany(w http.ResponseWriter, r *http.Request, list string
 		return
 	}
 
-	count, err := h.Store.InsertMany(r.Context(), list, items)
+	count, err := h.Store.InsertBatch(r.Context(), list, items)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to add list items: %v", err)
 		printError(w, r, &ErrorMessage{Error: errStr}, http.StatusInternalServerError)
@@ -355,7 +355,7 @@ func (h *Handler) insertMany(w http.ResponseWriter, r *http.Request, list string
 	printSuccess(w, r, &AddedMessage{Added: count}, http.StatusCreated)
 }
 
-// getMany requires the "count" query arg, and takes an optional
+// getBatch requires the "count" query arg, and takes an optional
 // "after_id" query arg. It returns a response body of list items;
 // each list item shows the number of attempts to
 // complete that list item. "count" determines how many items are
@@ -364,7 +364,7 @@ func (h *Handler) insertMany(w http.ResponseWriter, r *http.Request, list string
 // when set to the empty string, we start at the beginning of the list; when
 // set to an item (generally the last item from a previous call to this
 // handler) we start after that item in the list.
-func (h *Handler) getMany(w http.ResponseWriter, r *http.Request, list string) {
+func (h *Handler) getBatch(w http.ResponseWriter, r *http.Request, list string) {
 	query := r.Context().Value(QueryKey).(url.Values)
 	afterID := query.Get("after_id")
 	countStr := query.Get("count")
@@ -382,7 +382,7 @@ func (h *Handler) getMany(w http.ResponseWriter, r *http.Request, list string) {
 	if count == 0 {
 		return
 	}
-	listEntries, err := h.Store.GetMany(r.Context(), list, afterID, count)
+	listEntries, err := h.Store.GetBatch(r.Context(), list, afterID, count)
 	if len(listEntries) == 0 {
 		// Nothing found, so we are done!
 		return
@@ -393,10 +393,10 @@ func (h *Handler) getMany(w http.ResponseWriter, r *http.Request, list string) {
 	printListEntries(w, r, listEntries)
 }
 
-// incrementMany increments all of the items in the request body
+// incrementBatch increments all of the items in the request body
 // in the specified list. The response contains the
 // number of items successfully incremented, generally len(items) or 0.
-func (h *Handler) incrementMany(w http.ResponseWriter, r *http.Request, list string) {
+func (h *Handler) incrementBatch(w http.ResponseWriter, r *http.Request, list string) {
 	v := r.Context().Value(BodyBytesKey)
 	if v == nil {
 		printSuccess(w, r, &IncrementedMessage{Incremented: 0}, http.StatusOK)
@@ -410,7 +410,7 @@ func (h *Handler) incrementMany(w http.ResponseWriter, r *http.Request, list str
 		return
 	}
 
-	count, err := h.Store.IncrementMany(r.Context(), list, items)
+	count, err := h.Store.IncrementBatch(r.Context(), list, items)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to increment list items: %v", err)
 		http.Error(w, errStr, http.StatusInternalServerError)
@@ -419,10 +419,10 @@ func (h *Handler) incrementMany(w http.ResponseWriter, r *http.Request, list str
 	printSuccess(w, r, &IncrementedMessage{Incremented: count}, http.StatusOK)
 }
 
-// deleteMany deletes all of the items in the request body
+// deleteBatch deletes all of the items in the request body
 // from the specified list. The response contains the
 // number of items successfully deleted, generally len(items) or 0.
-func (h *Handler) deleteMany(w http.ResponseWriter, r *http.Request, list string) {
+func (h *Handler) deleteBatch(w http.ResponseWriter, r *http.Request, list string) {
 	v := r.Context().Value(BodyBytesKey)
 	if v == nil {
 		printSuccess(w, r, &DeletedMessage{Deleted: 0}, http.StatusOK)
@@ -436,7 +436,7 @@ func (h *Handler) deleteMany(w http.ResponseWriter, r *http.Request, list string
 		return
 	}
 
-	count, err := h.Store.DeleteMany(r.Context(), list, items)
+	count, err := h.Store.DeleteBatch(r.Context(), list, items)
 	if err != nil {
 		errStr := fmt.Sprintf("Error trying to delete list items: %v", err)
 		http.Error(w, errStr, http.StatusInternalServerError)

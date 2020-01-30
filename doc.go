@@ -12,28 +12,28 @@ Start with a list of the items to be downloaded.
     s, _ := iidy.NewPgStore(connectionURL)
     listName := "downloads"
     listItems := []string{"a.txt", "b.txt", "c.txt", "d.txt", "e.txt", "f.txt"}
-    s.AddMany(context.Background(), listName, listItems)
+    s.AddBatch(context.Background(), listName, listItems)
 
 A worker can get a certain number of items to work on:
 
     // gets "a.txt", "b.txt", "c.txt"
-    items, _ := s.GetMany(context.Background(), listName, "", 3)
+    items, _ := s.GetBatch(context.Background(), listName, "", 3)
 
 For items that were unsuccessfully downloaded, the number of failed attempts
 is incremented for that item. (A business rule can be set to abandon
 downloading an item after a certain number of attempts.)
 
-    count, _ := s.IncrementMany(context.Background(), ListName, []string{"a.txt", "c.txt"})
+    count, _ := s.IncrementBatch(context.Background(), ListName, []string{"a.txt", "c.txt"})
 
 Items that were successfully downloaded can be removed from the list.
 
-    count, _ := s.DeleteMany(context.Background(), ListName, []string{"b.txt"})
+    count, _ := s.DeleteBatch(context.Background(), ListName, []string{"b.txt"})
 
 A worker can get more items from the list, starting past the last item in the
 previously-worked-on batch:
 
     // gets "d.txt", "e.txt", "f.txt"
-    items, _ := s.GetMany(context.Background(), listName, "c.txt", 3)
+    items, _ := s.GetBatch(context.Background(), listName, "c.txt", 3)
 
 And the cycle can continue.
 */

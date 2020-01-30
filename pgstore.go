@@ -154,10 +154,10 @@ func (p *PgStore) IncrementOne(ctx context.Context, list string, item string) (i
 	return commandTag.RowsAffected(), nil
 }
 
-// InsertMany adds a slice of items (strings) to the specified list, and sets
+// InsertBatch adds a slice of items (strings) to the specified list, and sets
 // their completion attempt counts to 0. The first return value is the
 // number of items successfully inserted, generally len(items) or 0.
-func (p *PgStore) InsertMany(ctx context.Context, list string, items []string) (int64, error) {
+func (p *PgStore) InsertBatch(ctx context.Context, list string, items []string) (int64, error) {
 	if items == nil || len(items) == 0 {
 		return 0, nil
 	}
@@ -197,14 +197,14 @@ func (p *PgStore) InsertMany(ctx context.Context, list string, items []string) (
 	return commandTag.RowsAffected(), nil
 }
 
-// GetMany gets a slice of ListEntries from the specified list
+// GetBatch gets a slice of ListEntries from the specified list
 // (alphabetically sorted), starting after the startID, or from the beginning
 // of the list, if startID is an empty string. If there is nothing to be found,
 // an empty slice is returned.
 //
 // The general pattern being followed here is explained very well at
 // http://use-the-index-luke.com/sql/partial-results/fetch-next-page
-func (p *PgStore) GetMany(ctx context.Context, list string, startID string, count int) ([]ListEntry, error) {
+func (p *PgStore) GetBatch(ctx context.Context, list string, startID string, count int) ([]ListEntry, error) {
 	if count == 0 {
 		return []ListEntry{}, nil
 	}
@@ -259,10 +259,10 @@ func (p *PgStore) GetMany(ctx context.Context, list string, startID string, coun
 	return items, nil
 }
 
-// DeleteMany deletes a slice of items (strings) from the specified list.
+// DeleteBatch deletes a slice of items (strings) from the specified list.
 // The first return value is the number of items successfully deleted,
 // generally len(items) or 0.
-func (p *PgStore) DeleteMany(ctx context.Context, list string, items []string) (int64, error) {
+func (p *PgStore) DeleteBatch(ctx context.Context, list string, items []string) (int64, error) {
 	if items == nil || len(items) == 0 {
 		return 0, nil
 	}
@@ -297,10 +297,10 @@ func (p *PgStore) DeleteMany(ctx context.Context, list string, items []string) (
 	return commandTag.RowsAffected(), nil
 }
 
-// IncrementMany increments the attempts count for each item in the items slice for
+// IncrementBatch increments the attempts count for each item in the items slice for
 // the specified list.  The first return value is the number of items
 // successfully incremented, generally len(items) or 0.
-func (p *PgStore) IncrementMany(ctx context.Context, list string, items []string) (int64, error) {
+func (p *PgStore) IncrementBatch(ctx context.Context, list string, items []string) (int64, error) {
 	if items == nil || len(items) == 0 {
 		return 0, nil
 	}

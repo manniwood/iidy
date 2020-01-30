@@ -151,12 +151,12 @@ func TestIncrementOne(t *testing.T) {
 	}
 }
 
-func TestInsertMany(t *testing.T) {
+func TestInsertBatch(t *testing.T) {
 	s := getEmptyStore(t)
 	files := []string{"kernel.tar.gz", "vim.tar.gz", "robots.txt"}
 
 	// Does bulk add work?
-	count, err := s.InsertMany(context.Background(), "downloads", files)
+	count, err := s.InsertBatch(context.Background(), "downloads", files)
 	if err != nil {
 		t.Errorf("Error bulk inserting: %v", err)
 	}
@@ -179,7 +179,7 @@ func TestInsertMany(t *testing.T) {
 	}
 
 	// What if we bulk put nothing?
-	count, err = s.InsertMany(context.Background(), "downloads", []string{})
+	count, err = s.InsertBatch(context.Background(), "downloads", []string{})
 	if err != nil {
 		t.Errorf("Error bulk inserting: %v", err)
 	}
@@ -193,7 +193,7 @@ func TestInsertMany(t *testing.T) {
 func bulkAddTestItems(t *testing.T, s *PgStore) {
 	// Batch add a bunch of test items.
 	files := []string{"a", "b", "c", "d", "e", "f", "g"}
-	count, err := s.InsertMany(context.Background(), "downloads", files)
+	count, err := s.InsertBatch(context.Background(), "downloads", files)
 	if err != nil {
 		t.Errorf("Error bulk inserting: %v", err)
 	}
@@ -202,7 +202,7 @@ func bulkAddTestItems(t *testing.T, s *PgStore) {
 	}
 }
 
-func TestGetMany(t *testing.T) {
+func TestGetBatch(t *testing.T) {
 	var tests = []struct {
 		afterItem string
 		want      []ListEntry
@@ -217,7 +217,7 @@ func TestGetMany(t *testing.T) {
 
 	// If we bulk get 2 items at a time, does everything work?
 	for _, test := range tests {
-		items, err := s.GetMany(context.Background(), "downloads", test.afterItem, 2)
+		items, err := s.GetBatch(context.Background(), "downloads", test.afterItem, 2)
 		if err != nil {
 			t.Errorf("Error bulk fetching: %v", err)
 		}
@@ -227,7 +227,7 @@ func TestGetMany(t *testing.T) {
 	}
 
 	// What if we bulk get nothing?
-	items, err := s.GetMany(context.Background(), "downloads", "", 0)
+	items, err := s.GetBatch(context.Background(), "downloads", "", 0)
 	if err != nil {
 		t.Errorf("Error bulk deleting: %v", err)
 	}
@@ -236,12 +236,12 @@ func TestGetMany(t *testing.T) {
 	}
 }
 
-func TestIncrementMany(t *testing.T) {
+func TestIncrementBatch(t *testing.T) {
 	s := getEmptyStore(t)
 	bulkAddTestItems(t, s)
 
 	// Does bulk increment work?
-	count, err := s.IncrementMany(context.Background(), "downloads", []string{"a", "b", "c", "d", "e"})
+	count, err := s.IncrementBatch(context.Background(), "downloads", []string{"a", "b", "c", "d", "e"})
 	if err != nil {
 		t.Errorf("Error bulk incrementing: %v", err)
 	}
@@ -278,7 +278,7 @@ func TestIncrementMany(t *testing.T) {
 	}
 
 	// What if we bulk increment nothing?
-	count, err = s.IncrementMany(context.Background(), "downloads", []string{})
+	count, err = s.IncrementBatch(context.Background(), "downloads", []string{})
 	if err != nil {
 		t.Errorf("Error bulk deleting: %v", err)
 	}
@@ -287,12 +287,12 @@ func TestIncrementMany(t *testing.T) {
 	}
 }
 
-func TestDeleteMany(t *testing.T) {
+func TestDeleteBatch(t *testing.T) {
 	s := getEmptyStore(t)
 	bulkAddTestItems(t, s)
 
 	// Does bulk delete work?
-	count, err := s.DeleteMany(context.Background(), "downloads", []string{"a", "b", "c", "d", "e"})
+	count, err := s.DeleteBatch(context.Background(), "downloads", []string{"a", "b", "c", "d", "e"})
 	if err != nil {
 		t.Errorf("Error bulk deleting: %v", err)
 	}
@@ -326,7 +326,7 @@ func TestDeleteMany(t *testing.T) {
 	}
 
 	// What if we bulk delete nothing?
-	count, err = s.DeleteMany(context.Background(), "downloads", []string{})
+	count, err = s.DeleteBatch(context.Background(), "downloads", []string{})
 	if err != nil {
 		t.Errorf("Error bulk deleting: %v", err)
 	}
