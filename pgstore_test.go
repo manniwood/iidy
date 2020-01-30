@@ -161,7 +161,7 @@ func TestInsertMany(t *testing.T) {
 		t.Errorf("Error bulk inserting: %v", err)
 	}
 	if count != 3 {
-		t.Errorf("Bulk incremented wrong number of items. Expected 5, got %v", count)
+		t.Errorf("Batch incremented wrong number of items. Expected 5, got %v", count)
 	}
 
 	// If we get the list items, do they exist?
@@ -184,21 +184,21 @@ func TestInsertMany(t *testing.T) {
 		t.Errorf("Error bulk inserting: %v", err)
 	}
 	if count != 0 {
-		t.Errorf("Bulk added wrong number of items. Expected 0, got %v", count)
+		t.Errorf("Batch added wrong number of items. Expected 0, got %v", count)
 	}
 }
 
 // These items are expected to be in the db at the start
 // of the next few bulk tests.
 func bulkAddTestItems(t *testing.T, s *PgStore) {
-	// Bulk add a bunch of test items.
+	// Batch add a bunch of test items.
 	files := []string{"a", "b", "c", "d", "e", "f", "g"}
 	count, err := s.InsertMany(context.Background(), "downloads", files)
 	if err != nil {
 		t.Errorf("Error bulk inserting: %v", err)
 	}
 	if count != 7 {
-		t.Errorf("Bulk added wrong number of items. Expected 5, got %v", count)
+		t.Errorf("Batch added wrong number of items. Expected 5, got %v", count)
 	}
 }
 
@@ -232,7 +232,7 @@ func TestGetMany(t *testing.T) {
 		t.Errorf("Error bulk deleting: %v", err)
 	}
 	if len(items) != 0 {
-		t.Errorf("Bulk get of nothing yeilded results!")
+		t.Errorf("Batch get of nothing yeilded results!")
 	}
 }
 
@@ -246,7 +246,7 @@ func TestIncrementMany(t *testing.T) {
 		t.Errorf("Error bulk incrementing: %v", err)
 	}
 	if count != 5 {
-		t.Errorf("Bulk incremented wrong number of items. Expected 5, got %v", count)
+		t.Errorf("Batch incremented wrong number of items. Expected 5, got %v", count)
 	}
 
 	// If we look for incremented items, are they incremented?
@@ -283,7 +283,7 @@ func TestIncrementMany(t *testing.T) {
 		t.Errorf("Error bulk deleting: %v", err)
 	}
 	if count != 0 {
-		t.Errorf("Bulk incremented wrong number of items. Expected 0, got %v", count)
+		t.Errorf("Batch incremented wrong number of items. Expected 0, got %v", count)
 	}
 }
 
@@ -297,7 +297,7 @@ func TestDeleteMany(t *testing.T) {
 		t.Errorf("Error bulk deleting: %v", err)
 	}
 	if count != 5 {
-		t.Errorf("Bulk deleted wrong number of items. Expected 5, got %v", count)
+		t.Errorf("Batch deleted wrong number of items. Expected 5, got %v", count)
 	}
 
 	// If we look for the deleted items, are they correctly missing?
@@ -331,6 +331,6 @@ func TestDeleteMany(t *testing.T) {
 		t.Errorf("Error bulk deleting: %v", err)
 	}
 	if count != 0 {
-		t.Errorf("Bulk deleted wrong number of items. Expected 0, got %v", count)
+		t.Errorf("Batch deleted wrong number of items. Expected 0, got %v", count)
 	}
 }

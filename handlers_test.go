@@ -217,7 +217,7 @@ func TestDelHandler(t *testing.T) {
 
 }
 
-func TestBulkPostHandler(t *testing.T) {
+func TestBatchPostHandler(t *testing.T) {
 	var tests = []struct {
 		mime           string
 		body           []byte
@@ -297,7 +297,7 @@ robots.txt`),
 	}
 }
 
-func TestBulkGetHandler(t *testing.T) {
+func TestBatchGetHandler(t *testing.T) {
 	// Order of these tests matters. We set up state and go through in order.
 	var tests = []struct {
 		afterItem string
@@ -375,7 +375,7 @@ func TestBulkGetHandler(t *testing.T) {
 	}
 }
 
-func TestBulkGetHandlerError(t *testing.T) {
+func TestBatchGetHandlerError(t *testing.T) {
 	// What if we bulk get from a list that doesn't exist?
 	req, err := http.NewRequest("GET", "/iidy/v1/bulk/lists/i_do_not_exist?count=2", nil)
 	if err != nil {
@@ -391,7 +391,7 @@ func TestBulkGetHandlerError(t *testing.T) {
 	}
 }
 
-func TestBulkIncHandler(t *testing.T) {
+func TestBatchIncHandler(t *testing.T) {
 	var tests = []struct {
 		name     string
 		mime     string
@@ -467,7 +467,7 @@ e`),
 	}
 }
 
-func TestBulkIncHandlerError(t *testing.T) {
+func TestBatchIncHandlerError(t *testing.T) {
 	var tests = []struct {
 		name     string
 		mime     string
@@ -506,7 +506,7 @@ func TestBulkIncHandlerError(t *testing.T) {
 	}
 }
 
-func TestBulkDelHandler(t *testing.T) {
+func TestBatchDelHandler(t *testing.T) {
 	var tests = []struct {
 		name     string
 		mime     string
@@ -578,7 +578,7 @@ e`),
 	}
 }
 
-func TestBulkDelHandlerError(t *testing.T) {
+func TestBatchDelHandlerError(t *testing.T) {
 	var tests = []struct {
 		name     string
 		mime     string
