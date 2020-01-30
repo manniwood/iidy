@@ -202,7 +202,7 @@ func bulkAddTestItems(t *testing.T, s *PgStore) {
 	}
 }
 
-func TestBulkGet(t *testing.T) {
+func TestGetMany(t *testing.T) {
 	var tests = []struct {
 		afterItem string
 		want      []ListEntry
@@ -217,7 +217,7 @@ func TestBulkGet(t *testing.T) {
 
 	// If we bulk get 2 items at a time, does everything work?
 	for _, test := range tests {
-		items, err := s.BulkGet(context.Background(), "downloads", test.afterItem, 2)
+		items, err := s.GetMany(context.Background(), "downloads", test.afterItem, 2)
 		if err != nil {
 			t.Errorf("Error bulk fetching: %v", err)
 		}
@@ -227,7 +227,7 @@ func TestBulkGet(t *testing.T) {
 	}
 
 	// What if we bulk get nothing?
-	items, err := s.BulkGet(context.Background(), "downloads", "", 0)
+	items, err := s.GetMany(context.Background(), "downloads", "", 0)
 	if err != nil {
 		t.Errorf("Error bulk deleting: %v", err)
 	}

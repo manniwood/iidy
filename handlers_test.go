@@ -287,7 +287,7 @@ robots.txt`),
 		}
 
 		// What if we bulk get what we just bulk put?
-		listEntries, err := h.Store.BulkGet(context.Background(), "downloads", "", 3)
+		listEntries, err := h.Store.GetMany(context.Background(), "downloads", "", 3)
 		if err != nil {
 			t.Errorf("Error fetching items: %v", err)
 		}

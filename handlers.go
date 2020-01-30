@@ -382,7 +382,7 @@ func (h *Handler) getMany(w http.ResponseWriter, r *http.Request, list string) {
 	if count == 0 {
 		return
 	}
-	listEntries, err := h.Store.BulkGet(r.Context(), list, afterID, count)
+	listEntries, err := h.Store.GetMany(r.Context(), list, afterID, count)
 	if len(listEntries) == 0 {
 		// Nothing found, so we are done!
 		return

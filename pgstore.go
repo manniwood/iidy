@@ -197,14 +197,14 @@ func (p *PgStore) InsertMany(ctx context.Context, list string, items []string) (
 	return commandTag.RowsAffected(), nil
 }
 
-// BulkGet gets a slice of ListEntries from the specified list
+// GetMany gets a slice of ListEntries from the specified list
 // (alphabetically sorted), starting after the startID, or from the beginning
 // of the list, if startID is an empty string. If there is nothing to be found,
 // an empty slice is returned.
 //
 // The general pattern being followed here is explained very well at
 // http://use-the-index-luke.com/sql/partial-results/fetch-next-page
-func (p *PgStore) BulkGet(ctx context.Context, list string, startID string, count int) ([]ListEntry, error) {
+func (p *PgStore) GetMany(ctx context.Context, list string, startID string, count int) ([]ListEntry, error) {
 	if count == 0 {
 		return []ListEntry{}, nil
 	}
