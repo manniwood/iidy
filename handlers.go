@@ -290,6 +290,8 @@ func (h *Handler) getOne(w http.ResponseWriter, r *http.Request, list string, it
 	printSuccess(w, r, &ListEntry{Item: item, Attempts: attempts}, http.StatusOK)
 }
 
+// getItemsFromBody gets a slice of list items from the request body,
+// regardless if the request body is in JSON or plain text format.
 func getItemsFromBody(contentType string, bodyBytes []byte) ([]string, error) {
 	if bodyBytes == nil || len(bodyBytes) == 0 {
 		return nil, nil
@@ -297,9 +299,12 @@ func getItemsFromBody(contentType string, bodyBytes []byte) ([]string, error) {
 	if contentType == "application/json" {
 		return getItemsFromJSON(bodyBytes)
 	}
-	return getScrubbedLines(bodyBytes), nil
+	// default to text/plain
+	return getItemsFromPlainText(bodyBytes), nil
 }
 
+// getItemsFromJSON gets a slice of list item names from
+// the bytes of a request body that is in JSON format.
 func getItemsFromJSON(bodyBytes []byte) ([]string, error) {
 	if bodyBytes == nil || len(bodyBytes) == 0 {
 		return nil, nil
@@ -312,7 +317,9 @@ func getItemsFromJSON(bodyBytes []byte) ([]string, error) {
 	return msg.Items, nil
 }
 
-func getScrubbedLines(bodyBytes []byte) []string {
+// getItemsFromPlainText gets a slice of list item names from
+// the bytes of a request body that is in plain text format.
+func getItemsFromPlainText(bodyBytes []byte) []string {
 	if bodyBytes == nil || len(bodyBytes) == 0 {
 		return nil
 	}
@@ -438,6 +445,9 @@ func (h *Handler) deleteMany(w http.ResponseWriter, r *http.Request, list string
 	printSuccess(w, r, &DeletedMessage{Deleted: count}, http.StatusOK)
 }
 
+// printListEntries prints list entries to the w, the response writer.
+// This function correctly determines whether JSON or plain text is
+// requested.
 func printListEntries(w http.ResponseWriter, r *http.Request, listEntries []ListEntry) {
 	contentType := r.Context().Value(FinalContentTypeKey)
 	if contentType == "application/json" {
@@ -454,6 +464,8 @@ func printListEntries(w http.ResponseWriter, r *http.Request, listEntries []List
 	return
 }
 
+// printError prints an error to w, the response writer, in the requested
+// format, JSON or plain text. The response code is also set as specified.
 func printError(w http.ResponseWriter, r *http.Request, e *ErrorMessage, code int) {
 	contentType := r.Context().Value(FinalContentTypeKey)
 	if contentType == "application/json" {
@@ -470,6 +482,8 @@ func printError(w http.ResponseWriter, r *http.Request, e *ErrorMessage, code in
 	return
 }
 
+// printSuccess prints a success message to w, the response writer, in the requested
+// format, JSON or plain text. The response code is also set as specified.
 func printSuccess(w http.ResponseWriter, r *http.Request, v interface{}, code int) {
 	w.WriteHeader(code)
 	contentType := r.Context().Value(FinalContentTypeKey)
