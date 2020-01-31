@@ -273,7 +273,7 @@ robots.txt`),
 		// First, clear the store.
 		h.Store.Nuke(context.Background())
 
-		req, err := http.NewRequest("POST", "/iidy/v1/bulk/lists/downloads", bytes.NewBuffer(test.body))
+		req, err := http.NewRequest("POST", "/iidy/v1/batch/lists/downloads", bytes.NewBuffer(test.body))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -288,7 +288,7 @@ robots.txt`),
 			t.Errorf(`Unexpected body: got "%v" want "%v"`, rr.Body.String(), test.expectAfterAdd)
 		}
 
-		// What if we bulk get what we just bulk put?
+		// What if we batch get what we just batch put?
 		listEntries, err := h.Store.GetBatch(context.Background(), "downloads", "", 3)
 		if err != nil {
 			t.Errorf("Error fetching items: %v", err)
@@ -338,7 +338,7 @@ func TestBatchGetHandler(t *testing.T) {
 	}
 
 	s := getEmptyStore(t)
-	bulkAddTestItems(t, s)
+	batchAddTestItems(t, s)
 
 	for _, mime := range []string{"text/plain", "application/json"} {
 		for _, test := range tests {
@@ -349,7 +349,7 @@ func TestBatchGetHandler(t *testing.T) {
 				want = test.wantJSON
 			}
 
-			url := "/iidy/v1/bulk/lists/downloads?count=2"
+			url := "/iidy/v1/batch/lists/downloads?count=2"
 			if test.afterItem != "" {
 				url += "&after_id="
 				url += test.afterItem
@@ -378,8 +378,8 @@ func TestBatchGetHandler(t *testing.T) {
 }
 
 func TestBatchGetHandlerError(t *testing.T) {
-	// What if we bulk get from a list that doesn't exist?
-	req, err := http.NewRequest("GET", "/iidy/v1/bulk/lists/i_do_not_exist?count=2", nil)
+	// What if we batch get from a list that doesn't exist?
+	req, err := http.NewRequest("GET", "/iidy/v1/batch/lists/i_do_not_exist?count=2", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -420,10 +420,10 @@ e`),
 	}
 	for _, test := range tests {
 		s := getEmptyStore(t)
-		bulkAddTestItems(t, s)
+		batchAddTestItems(t, s)
 
-		// Can we bulk increment some of the items' attempts?
-		req, err := http.NewRequest("POST", "/iidy/v1/bulk/lists/downloads?action=increment", bytes.NewBuffer(test.body))
+		// Can we batch increment some of the items' attempts?
+		req, err := http.NewRequest("POST", "/iidy/v1/batch/lists/downloads?action=increment", bytes.NewBuffer(test.body))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -488,8 +488,8 @@ func TestBatchIncHandlerError(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		// What if we bulk increment nothing?
-		req, err := http.NewRequest(http.MethodPost, "/iidy/v1/bulk/lists/downloads?action=increment", nil)
+		// What if we batch increment nothing?
+		req, err := http.NewRequest(http.MethodPost, "/iidy/v1/batch/lists/downloads?action=increment", nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -535,9 +535,9 @@ e`),
 	}
 	for _, test := range tests {
 		s := getEmptyStore(t)
-		bulkAddTestItems(t, s)
+		batchAddTestItems(t, s)
 
-		req, err := http.NewRequest(http.MethodDelete, "/iidy/v1/bulk/lists/downloads", bytes.NewBuffer(test.body))
+		req, err := http.NewRequest(http.MethodDelete, "/iidy/v1/batch/lists/downloads", bytes.NewBuffer(test.body))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -601,10 +601,10 @@ func TestBatchDelHandlerError(t *testing.T) {
 	for _, test := range tests {
 		s := getEmptyStore(t)
 		h := &Handler{Store: s}
-		// What if we bulk delete nothing?
+		// What if we batch delete nothing?
 		// First, clear the store.
 		h.Store.Nuke(context.Background())
-		req, err := http.NewRequest(http.MethodDelete, "/iidy/v1/bulk/lists/downloads", nil)
+		req, err := http.NewRequest(http.MethodDelete, "/iidy/v1/batch/lists/downloads", nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -643,13 +643,13 @@ func addSingleStartingItem(t *testing.T, s *pgstore.PgStore) {
 }
 
 // These items are expected to be in the db at the start
-// of the next few bulk tests.
-func bulkAddTestItems(t *testing.T, s *pgstore.PgStore) {
+// of the next few batch tests.
+func batchAddTestItems(t *testing.T, s *pgstore.PgStore) {
 	// Batch add a bunch of test items.
 	files := []string{"a", "b", "c", "d", "e", "f", "g"}
 	count, err := s.InsertBatch(context.Background(), "downloads", files)
 	if err != nil {
-		t.Errorf("Error bulk inserting: %v", err)
+		t.Errorf("Error batch inserting: %v", err)
 	}
 	if count != 7 {
 		t.Errorf("Batch added wrong number of items. Expected 5, got %v", count)

@@ -155,10 +155,10 @@ func TestInsertBatch(t *testing.T) {
 	s := GetEmptyStore(t)
 	files := []string{"kernel.tar.gz", "vim.tar.gz", "robots.txt"}
 
-	// Does bulk add work?
+	// Does batch add work?
 	count, err := s.InsertBatch(context.Background(), "downloads", files)
 	if err != nil {
-		t.Errorf("Error bulk inserting: %v", err)
+		t.Errorf("Error batch inserting: %v", err)
 	}
 	if count != 3 {
 		t.Errorf("Batch incremented wrong number of items. Expected 5, got %v", count)
@@ -178,10 +178,10 @@ func TestInsertBatch(t *testing.T) {
 		}
 	}
 
-	// What if we bulk put nothing?
+	// What if we batch put nothing?
 	count, err = s.InsertBatch(context.Background(), "downloads", []string{})
 	if err != nil {
-		t.Errorf("Error bulk inserting: %v", err)
+		t.Errorf("Error batch inserting: %v", err)
 	}
 	if count != 0 {
 		t.Errorf("Batch added wrong number of items. Expected 0, got %v", count)
@@ -189,13 +189,13 @@ func TestInsertBatch(t *testing.T) {
 }
 
 // These items are expected to be in the db at the start
-// of the next few bulk tests.
-func bulkAddTestItems(t *testing.T, s *PgStore) {
+// of the next few batch tests.
+func batchAddTestItems(t *testing.T, s *PgStore) {
 	// Batch add a bunch of test items.
 	files := []string{"a", "b", "c", "d", "e", "f", "g"}
 	count, err := s.InsertBatch(context.Background(), "downloads", files)
 	if err != nil {
-		t.Errorf("Error bulk inserting: %v", err)
+		t.Errorf("Error batch inserting: %v", err)
 	}
 	if count != 7 {
 		t.Errorf("Batch added wrong number of items. Expected 5, got %v", count)
@@ -213,23 +213,23 @@ func TestGetBatch(t *testing.T) {
 		{"f", []ListEntry{{"g", 0}}},
 	}
 	s := GetEmptyStore(t)
-	bulkAddTestItems(t, s)
+	batchAddTestItems(t, s)
 
-	// If we bulk get 2 items at a time, does everything work?
+	// If we batch get 2 items at a time, does everything work?
 	for _, test := range tests {
 		items, err := s.GetBatch(context.Background(), "downloads", test.afterItem, 2)
 		if err != nil {
-			t.Errorf("Error bulk fetching: %v", err)
+			t.Errorf("Error batch fetching: %v", err)
 		}
 		if !reflect.DeepEqual(test.want, items) {
 			t.Errorf("Expected %v; got %v", test.want, items)
 		}
 	}
 
-	// What if we bulk get nothing?
+	// What if we batch get nothing?
 	items, err := s.GetBatch(context.Background(), "downloads", "", 0)
 	if err != nil {
-		t.Errorf("Error bulk deleting: %v", err)
+		t.Errorf("Error batch deleting: %v", err)
 	}
 	if len(items) != 0 {
 		t.Errorf("Batch get of nothing yeilded results!")
@@ -238,12 +238,12 @@ func TestGetBatch(t *testing.T) {
 
 func TestIncrementBatch(t *testing.T) {
 	s := GetEmptyStore(t)
-	bulkAddTestItems(t, s)
+	batchAddTestItems(t, s)
 
-	// Does bulk increment work?
+	// Does batch increment work?
 	count, err := s.IncrementBatch(context.Background(), "downloads", []string{"a", "b", "c", "d", "e"})
 	if err != nil {
-		t.Errorf("Error bulk incrementing: %v", err)
+		t.Errorf("Error batch incrementing: %v", err)
 	}
 	if count != 5 {
 		t.Errorf("Batch incremented wrong number of items. Expected 5, got %v", count)
@@ -277,10 +277,10 @@ func TestIncrementBatch(t *testing.T) {
 		}
 	}
 
-	// What if we bulk increment nothing?
+	// What if we batch increment nothing?
 	count, err = s.IncrementBatch(context.Background(), "downloads", []string{})
 	if err != nil {
-		t.Errorf("Error bulk deleting: %v", err)
+		t.Errorf("Error batch deleting: %v", err)
 	}
 	if count != 0 {
 		t.Errorf("Batch incremented wrong number of items. Expected 0, got %v", count)
@@ -289,12 +289,12 @@ func TestIncrementBatch(t *testing.T) {
 
 func TestDeleteBatch(t *testing.T) {
 	s := GetEmptyStore(t)
-	bulkAddTestItems(t, s)
+	batchAddTestItems(t, s)
 
-	// Does bulk delete work?
+	// Does batch delete work?
 	count, err := s.DeleteBatch(context.Background(), "downloads", []string{"a", "b", "c", "d", "e"})
 	if err != nil {
-		t.Errorf("Error bulk deleting: %v", err)
+		t.Errorf("Error batch deleting: %v", err)
 	}
 	if count != 5 {
 		t.Errorf("Batch deleted wrong number of items. Expected 5, got %v", count)
@@ -325,10 +325,10 @@ func TestDeleteBatch(t *testing.T) {
 		}
 	}
 
-	// What if we bulk delete nothing?
+	// What if we batch delete nothing?
 	count, err = s.DeleteBatch(context.Background(), "downloads", []string{})
 	if err != nil {
-		t.Errorf("Error bulk deleting: %v", err)
+		t.Errorf("Error batch deleting: %v", err)
 	}
 	if count != 0 {
 		t.Errorf("Batch deleted wrong number of items. Expected 0, got %v", count)

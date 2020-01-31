@@ -151,7 +151,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // delete handles DELETEs to these two endpoints:
 //     DELETE /v1/lists/<listname>/<itemname>
-//     DELETE /v1/bulk/lists/<listname> [itemnames in body]
+//     DELETE /v1/batch/lists/<listname> [itemnames in body]
 func (h *Handler) delete(w http.ResponseWriter, r *http.Request) {
 	urlParts := strings.Split(r.URL.Path, "/")
 	if len(urlParts) < 6 {
@@ -165,7 +165,7 @@ func (h *Handler) delete(w http.ResponseWriter, r *http.Request) {
 		h.deleteOne(w, r, list, item)
 		return
 	}
-	if urlParts[3] == "bulk" && urlParts[4] == "lists" {
+	if urlParts[3] == "batch" && urlParts[4] == "lists" {
 		list := urlParts[5]
 		h.deleteBatch(w, r, list)
 		return
@@ -177,7 +177,7 @@ func (h *Handler) delete(w http.ResponseWriter, r *http.Request) {
 
 // get handles GETs to these two endpoints:
 //     GET /iidy/v1/lists/<listname>/<itemname>
-//     GET /iidy/v1/bulk/lists/<listname>?count=ct&after_id=it
+//     GET /iidy/v1/batch/lists/<listname>?count=ct&after_id=it
 func (h *Handler) get(w http.ResponseWriter, r *http.Request) {
 	urlParts := strings.Split(r.URL.Path, "/")
 	if len(urlParts) < 6 {
@@ -191,7 +191,7 @@ func (h *Handler) get(w http.ResponseWriter, r *http.Request) {
 		h.getOne(w, r, list, item)
 		return
 	}
-	if urlParts[3] == "bulk" && urlParts[4] == "lists" {
+	if urlParts[3] == "batch" && urlParts[4] == "lists" {
 		list := urlParts[5]
 		h.getBatch(w, r, list)
 		return
@@ -203,8 +203,8 @@ func (h *Handler) get(w http.ResponseWriter, r *http.Request) {
 
 // post handles POSTs to these three endpoints:
 //     POST /iidy/v1/lists/<listname>/<itemname>
-//     POST /iidy/v1/bulk/lists/<listname> [itemnames in body]
-//     POST /iidy/v1/bulk/lists/<listname>?action=increment [itemnames in body]
+//     POST /iidy/v1/batch/lists/<listname> [itemnames in body]
+//     POST /iidy/v1/batch/lists/<listname>?action=increment [itemnames in body]
 func (h *Handler) post(w http.ResponseWriter, r *http.Request) {
 	urlParts := strings.Split(r.URL.Path, "/")
 	if len(urlParts) < 6 {
@@ -225,7 +225,7 @@ func (h *Handler) post(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	if urlParts[3] == "bulk" && urlParts[4] == "lists" {
+	if urlParts[3] == "batch" && urlParts[4] == "lists" {
 		list := urlParts[5]
 		if query.Get("action") == "increment" {
 			h.incrementBatch(w, r, list)

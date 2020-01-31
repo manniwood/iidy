@@ -25,7 +25,7 @@ Sample interaction:
 	$ curl localhost:8080/iidy/v1/lists/downloads/a.txt
 	Not found.
 
-	$ curl -X POST localhost:8080/iidy/v1/bulk/lists/downloads -d '
+	$ curl -X POST localhost:8080/iidy/v1/batch/lists/downloads -d '
 	b.txt
 	c.txt
 	d.txt
@@ -37,21 +37,21 @@ Sample interaction:
 	'
 	ADDED 8
 
-	$ curl localhost:8080/iidy/v1/bulk/lists/downloads?count=2
+	$ curl localhost:8080/iidy/v1/batch/lists/downloads?count=2
 	b.txt 0
 	c.txt 0
 
-	$ curl "localhost:8080/iidy/v1/bulk/lists/downloads?count=2&after_id=c.txt"
+	$ curl "localhost:8080/iidy/v1/batch/lists/downloads?count=2&after_id=c.txt"
 	d.txt 0
 	e.txt 0
 
-	$ curl "localhost:8080/iidy/v1/bulk/lists/downloads?count=4&after_id=e.txt"
+	$ curl "localhost:8080/iidy/v1/batch/lists/downloads?count=4&after_id=e.txt"
 	f.txt 0
 	g.txt 0
 	h.txt 0
 	i.txt 0
 
-	$ curl localhost:8080/iidy/v1/bulk/lists/downloads?action=increment -d '
+	$ curl localhost:8080/iidy/v1/batch/lists/downloads?action=increment -d '
 	b.txt
 	c.txt
 	d.txt
@@ -59,7 +59,7 @@ Sample interaction:
 	'
 	INCREMENTED 4
 
-	$ curl localhost:8080/iidy/v1/bulk/lists/downloads?count=100
+	$ curl localhost:8080/iidy/v1/batch/lists/downloads?count=100
 	b.txt 1
 	c.txt 1
 	d.txt 1
@@ -69,7 +69,7 @@ Sample interaction:
 	h.txt 0
 	i.txt 0
 
-	$ curl -X DELETE localhost:8080/iidy/v1/bulk/lists/downloads -d '
+	$ curl -X DELETE localhost:8080/iidy/v1/batch/lists/downloads -d '
 	d.txt
 	e.txt
 	f.txt
@@ -77,7 +77,7 @@ Sample interaction:
 	'
 	DELETED 4
 
-	$ curl localhost:8080/iidy/v1/bulk/lists/downloads?count=100
+	$ curl localhost:8080/iidy/v1/batch/lists/downloads?count=100
 	b.txt 1
 	c.txt 1
 	h.txt 0
