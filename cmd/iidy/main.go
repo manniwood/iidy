@@ -7,12 +7,13 @@ import (
 	"os"
 
 	"github.com/manniwood/iidy"
+	"github.com/manniwood/iidy/pgstore"
 )
 
 func main() {
 	port := 8080
 
-	s, err := iidy.NewPgStore(os.Getenv("IIDY_PG_CONN_URL"))
+	s, err := pgstore.NewPgStore(os.Getenv("IIDY_PG_CONN_URL"))
 	if err != nil {
 		log.Fatalf("Could not connect to data store: %v\n", err)
 	}
