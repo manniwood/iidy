@@ -8,39 +8,215 @@ How much can I get done using just the Go standard library?
 IIDY needs a library to connect to PostgreSQL, but otherwise,
 it uses the standard library.
 
-## IIDY Purpose
+## The Problem IIDY is Trying to Solve
 
 I've worked in jobs where there would be millions of things to
 be processed, such as downloading a bunch of files for an organization.
-Naturally, some of the things wouldn't work on the first try (though
-most would).
 
-A certain pattern emerged:
+Naturally, there was always a ratio of files which successfully
+downloaded on the first try, versus the files which failed an initial
+download attempt.
 
-1) Get the list of things to be processed, and put the names of those
-things in a list.
+One could follow a simple workflow like this:
 
-2) Process those things, and, when successful, delete them from the list;
-when failed, increment the number of attempts for those failed items
-in the list.
+1) Add to a list the names of files to be downloaded .
 
-3) Try failed items again later. Abandon items that failed to be
-processed after a certain number of attempts, by deleting them
-from the list.
+2) Attempt to download the files, and 
+
+a) when successful, delete the names of the successfully-downloaded
+files from the list we made in step 1.
+
+b) when failed, increment the number of attempts for each failed file
+from the list we made in step 1.
+
+3) Try failed items again later. Abandon items that failed 
+a certain number of times, by deleting them from the list.
 
 4) Eventually, the list of items to be processed ends up empty.
 
-A variation on this, for really large lists, is to maybe have a co-ordinator
-process get large batches of things to work on from the list, hand
-those items off to other workers and have those workers report back
-to the list, by either deleting items from the list that were
-successfully processed, or incrementing the number of attempts
-for failed items.
+One could also follow more complex workflows, where a co-ordinator
+might assign non-overlapping ranges of downloads to workers
+to procdess in parallel.
+
+## DB
+
+One way to keep track of this in an RDBMS is through a simple
+table where we track the name of the list alongside the name of
+an item in that list, and the number of attempts made to process
+that item.
+
+A single table is all that is be required.
+
+```
+create table lists (
+	list     text    not null,
+	item     text    not null,
+	attempts integer not null default 0,
+	constraint list_pk primary key (list, item));
+```
+
+The operations on single items are as straightforward as you might think:
+
+Insert item `training.mov` into the list 'trainingvideos`:
+
+```
+insert into lists
+(list, item)
+values ('trainingvideos', 'training.mov');
+```
+
+See how many times we attempted to download `training.mov`
+in list 'trainingvideos`:
+
+```
+select attempts
+  from lists
+ where list = 'trainingvideos'
+   and item = 'training.mov';
+```
+
+Increment the number of attempts to download `training.mov`
+in list 'trainingvideos`:
+
+```
+update lists
+   set attempts = attempts + 1
+ where list = 'trainingvideos'
+   and item = 'training.mov';
+```
+
+Delete `training.mov` from list 'trainingvideos`:
+
+```
+delete from lists
+ where list = 'trainingvideos'
+   and item = 'training.mov';
+```
+
+### Batching for Performance
+
+Where it starts to get interesting is when we consider
+tracking millions or billions of items. Hitting the database
+for every individual item (and making a network round trip for
+every item) will be crazy slow.
+
+One of the oldest performance tricks in the book is to do
+things in batches. PostgreSQL gives us lots of options there.
+
+The first thing to know is that sets of values can be repeated
+in an insert statement. If we wanted to insert files `1.txt`
+through `4.txt` into the list foo, we can do so in a single insert statement:
+
+```
+insert into lists
+(list, item)
+values
+('foo', '1.txt'),
+('foo', '2.txt'),
+('foo', '3.txt'),
+('foo', '4.txt');
+```
+
+Reading list items in batches has similar opportunities for
+speedup when we want to process them in the same order as their
+primary key index. Following the advice at
+[Use the Index, Luke](https://use-the-index-luke.com/blog/2013-07/pagination-done-the-postgresql-way)
+
+Get the first 1000 files
+
+```
+  select item,
+         attempts
+    from lists
+   where list = 'foo'
+order by list,
+         item
+   limit 1000;
+```
+
+Get the next 1000 files, etc:
+
+```
+  select item,
+         attempts
+    from lists
+   where list = 'foo'
+     and item > '1000.txt'
+order by list,
+         item
+   limit 1000;
+```
+
+Incrementing the attempts for a batch of items can also take
+advantage of a few tricks.
+
+For one thing, it doesn't matter if one attempt is 1 and has to increment
+to 2, and another is 5 and has to increment to 6: we just
+`update ... set attempts = attempts + 1` so no matter what the current
+values is for an item, we bump it up one.
+
+Then, when we provide a list of files whose attempts we want to increment,
+we provide them as essentially a single-columned inline table using the
+[values](https://www.postgresql.org/docs/current/sql-values.html)
+SQL statement to do so:
+
+```
+update lists
+   set attempts = attempts + 1
+ where list = 'foo'
+   and item in (values ('1.txt'),
+                       ('2.txt'),
+                       ('3.txt'),
+                       ('4.txt'),
+                       ('5.txt'));
+```
+
+Another advantage of using a single-columned inline table via `values`
+is that it's more efficient for PostgreSQL to process a table than
+it would be a normal list of values in an `in` clause.
+See [here](https://www.manniwood.com/2016_02_01/arrays_and_the_postgresql_query_planner.html)
+and [here](https://dba.stackexchange.com/questions/91247/optimizing-a-postgres-query-with-a-large-in)
+for details.
+
+Deleting a batch of items from the table takes advantage of the same
+performance optimization as the update above:
+
+```
+delete from lists
+      where list = 'foo'
+   and item in (values ('1.txt'),
+                       ('2.txt'),
+                       ('3.txt'),
+                       ('4.txt'),
+                       ('5.txt'));
+```
+
+This explains all of the SQL that is used in the `pgstore.go` source
+file. The SQL statements themselves are built up in a fairly straightforward
+manner. More complex SQL might benefit from a templating system, whereas
+here, introducing a templating system might be too much too early.
+
+### Testing
+
+The tests for `pgstore.go` assume the existence/availability of a
+PostgreSQL database that has been loaded with the required schema.
+
+So really we are doing integration tests and not a unit tests.
+
+The upside of testing this way is knowing that the SQL code actually works,
+because it uses an actual PostgreSQL database.
+
+The downside of testing this way is the requirement of a PostgreSQL instance.
+Using something like [sqlmock](https://github.com/DATA-DOG/go-sqlmock) would
+allow actual unit testing.
 
 ## API
 
-The REST-like interface for this looks something like this, for
-a list of items that need to be downloaded (named downloads here):
+Normally, the code in `pgstore.go` would just live inside of a larger applicaiton,
+but for learning purposes, I created a REST-like API to sit on top of
+`pgstore.go`.
+
+The API for dealing with single items looks like this:
 
 Get the number of attempts for `a.txt` from the list named `downloads`.
 
@@ -66,9 +242,7 @@ Delete `a.txt` from the list named `downloads`.
 DELETE localhost:8080/iidy/v1/lists/downloads/a.txt
 ```
 
-Of course, if we are deailing will millions of items, going to a REST endpoint
-for individual items is really inefficient. So, of course, a more realistic
-API (from the point of view of efficiency) should support batching.
+The API for dealing with items in batches looks like this:
 
 Add items `a.txt` through `i.txt` to the `downloads` list:
 
@@ -126,9 +300,12 @@ e.txt
 
 ### API design considerations
 
+REST is not really a standard, so there's a lot of lattitude in how to
+design and implement a REST-like API.
+
 Earlier iterations of IIDY used custom verbs for incrementing and doing
-batch operations. So instead of `POST ...?action=increment`, I had
-`INCREMENT`. And instead of `DELETE .../batch/...`, I had `BULKDELETE`
+batch operations. So instead of `POST ...?action=increment`, I used
+`INCREMENT`. And instead of `DELETE .../batch/...`, I used `BULKDELETE`
 
 However, I read
 _Building Microservices in Go_, by Nic Jackson, who provided these guidelines:
@@ -139,14 +316,21 @@ _Building Microservices in Go_, by Nic Jackson, who provided these guidelines:
  - DELETE deletes a resource
  - HEAD is like GET that only returns headers and no body; it is used to see if a resource exists or not without the overhead of returning that resource's body
 
-And that influenced the API that I have now.
+and that influenced the API that I have now.
 
-integ test vs. unit test
+If this was written for a particular company rather than as a pet/learning
+project, it could follow the house style of that company, including any
+conventions it had accumulated along the way.
 
-// NOTE on error handling: we follow the advice at https://blog.golang.org/go1.13-errors:
-// The pgx errors we will be dealing with are internal details.
-// To avoid exposing them to the caller, we repackage them as new
-// errors with the same text. We use the %v formatting verb, since
-// %w would permit the caller to unwrap the original pgx errors.
-// We don't want to support pgx errors as part of our API.
+### Error handling considerations
+
+I followed the advice at https://blog.golang.org/go1.13-errors when
+planning the error handling between pgstore and the REST interface.
+
+The pgx errors we will be dealing with are internal details to pgstore.
+To avoid exposing pgx errors to the REST part of the application,
+I repackage them as new errors with the same text as the original errors.
+I use the `%v` formatting verb, since `%w` would permit the caller to
+unwrap the original pgx errors. I don't want to support pgx errors as part
+of IIDY's API.
 
