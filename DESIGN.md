@@ -2,24 +2,21 @@
 
 IIDY is a pet project where I explore API/service ideas in Go.
 
-## Constraint
+## Purpose
 
-How much can I get done using just the Go standard library?
-IIDY needs a library to connect to PostgreSQL, but otherwise,
-it uses the standard library.
+Ever work on a project where there were millions or billions of items to
+process, some of which would succeed, and some of which would fail?
+And you needed a way to track the items to be processed, so that
+items that failed the first attempt to be processed could be retried
+until successful?
 
-## The Problem IIDY is Trying to Solve
+IIDY is an exploration of that problem.
 
-I've worked in jobs where there would be millions of things to
-be processed, such as downloading a bunch of files for an organization.
+Let's say you had to download a million files.
 
-Naturally, there was always a ratio of files which successfully
-downloaded on the first try, versus the files which failed an initial
-download attempt.
+You could follow a workflow like this:
 
-One could follow a simple workflow like this:
-
-1) Add to a list the names of files to be downloaded .
+1) Add to a list the names of files to be downloaded.
 
 2) Attempt to download the files, and 
 
@@ -38,6 +35,18 @@ One could also follow more complex workflows, where a co-ordinator
 might assign non-overlapping ranges of downloads to workers
 to procdess in parallel.
 
+That's the problem IIDY tries to solve.
+
+Usually this problem would not stand alone in as its own project, but this
+is for fun/education.
+
+## Constraint
+
+How much can I get done using just the Go standard library?
+I definitely need a library to connect to PostgreSQL (the data store
+I used for this project) but otherwise, everything else can
+be done using Go's standard library.
+
 ## DB
 
 One way to keep track of this in an RDBMS is through a simple
@@ -55,53 +64,21 @@ create table lists (
 	constraint list_pk primary key (list, item));
 ```
 
-The operations on single items are as straightforward as you might think:
+The primary key constraint will build an index that will make lookups
+by list and item go quickly.
 
-Insert item `training.mov` into the list 'trainingvideos`:
-
-```
-insert into lists
-(list, item)
-values ('trainingvideos', 'training.mov');
-```
-
-See how many times we attempted to download `training.mov`
-in list 'trainingvideos`:
-
-```
-select attempts
-  from lists
- where list = 'trainingvideos'
-   and item = 'training.mov';
-```
-
-Increment the number of attempts to download `training.mov`
-in list 'trainingvideos`:
-
-```
-update lists
-   set attempts = attempts + 1
- where list = 'trainingvideos'
-   and item = 'training.mov';
-```
-
-Delete `training.mov` from list 'trainingvideos`:
-
-```
-delete from lists
- where list = 'trainingvideos'
-   and item = 'training.mov';
-```
+The SQL for operations on single items is straightforward:
+See `pgstore.go` for details.
 
 ### Batching for Performance
 
-Where it starts to get interesting is when we consider
+Where the SQL starts to get interesting is when we consider
 tracking millions or billions of items. Hitting the database
 for every individual item (and making a network round trip for
 every item) will be crazy slow.
 
 One of the oldest performance tricks in the book is to do
-things in batches. PostgreSQL gives us lots of options there.
+things in batches. PostgreSQL gives us lots of options to do just that.
 
 The first thing to know is that sets of values can be repeated
 in an insert statement. If we wanted to insert files `1.txt`
@@ -117,12 +94,18 @@ values
 ('foo', '4.txt');
 ```
 
-Reading list items in batches has similar opportunities for
-speedup when we want to process them in the same order as their
-primary key index. Following the advice at
-[Use the Index, Luke](https://use-the-index-luke.com/blog/2013-07/pagination-done-the-postgresql-way)
+Batch inserts are therefore possible.
 
-Get the first 1000 files
+Batch reads are also possible. Imagine a co-ordinator process
+(or Goroutine) paging through a list of downloads and handing
+off batches of downloads to workers.
+
+I followed the advice at
+[Use the Index, Luke](https://use-the-index-luke.com/blog/2013-07/pagination-done-the-postgresql-way)
+to ensure that paging through a list of thousands of files performs
+well.
+
+Here's the SQL to get the first 1000 files
 
 ```
   select item,
@@ -134,7 +117,7 @@ order by list,
    limit 1000;
 ```
 
-Get the next 1000 files, etc:
+Here's the SQL to get the next 1000 files, etc:
 
 ```
   select item,
@@ -147,18 +130,20 @@ order by list,
    limit 1000;
 ```
 
-Incrementing the attempts for a batch of items can also take
-advantage of a few tricks.
+We can also increment attempt counts in batches.
 
-For one thing, it doesn't matter if one attempt is 1 and has to increment
-to 2, and another is 5 and has to increment to 6: we just
-`update ... set attempts = attempts + 1` so no matter what the current
-values is for an item, we bump it up one.
+The first trick is to just add one to the current value in
+the table, so that one bit of SQL can increment a list of
+items whose attempt counts will vary:
 
-Then, when we provide a list of files whose attempts we want to increment,
-we provide them as essentially a single-columned inline table using the
+```
+set attempts = attempts + 1
+```
+
+The next trick is to provide the list of files as a single-columned
+inline table in the `in` clause of the `update` statement useing the
 [values](https://www.postgresql.org/docs/current/sql-values.html)
-SQL statement to do so:
+SQL statement.
 
 ```
 update lists
@@ -171,7 +156,7 @@ update lists
                        ('5.txt'));
 ```
 
-Another advantage of using a single-columned inline table via `values`
+The advantage of using a single-columned inline table via `values`
 is that it's more efficient for PostgreSQL to process a table than
 it would be a normal list of values in an `in` clause.
 See [here](https://www.manniwood.com/2016_02_01/arrays_and_the_postgresql_query_planner.html)
@@ -201,7 +186,7 @@ here, introducing a templating system might be too much too early.
 The tests for `pgstore.go` assume the existence/availability of a
 PostgreSQL database that has been loaded with the required schema.
 
-So really we are doing integration tests and not a unit tests.
+So really we are doing integration tests and not unit tests.
 
 The upside of testing this way is knowing that the SQL code actually works,
 because it uses an actual PostgreSQL database.
@@ -210,37 +195,12 @@ The downside of testing this way is the requirement of a PostgreSQL instance.
 Using something like [sqlmock](https://github.com/DATA-DOG/go-sqlmock) would
 allow actual unit testing.
 
-## API
+## The REST API
 
 Normally, the code in `pgstore.go` would just live inside of a larger applicaiton,
 but for learning purposes, I created a REST-like API to sit on top of
 `pgstore.go`.
 
-The API for dealing with single items looks like this:
-
-Get the number of attempts for `a.txt` from the list named `downloads`.
-
-```
-GET /iidy/v1/lists/downloads/a.txt
-```
-
-Add `a.txt` to the list named `downloads`.
-
-```
-POST /iidy/v1/lists/downloads/a.txt
-```
-
-Increment the number of attempts to process `a.txt` from the list named `downloads`.
-
-```
-POST /iidy/v1/lists/downloads/a.txt?action=increment
-```
-
-Delete `a.txt` from the list named `downloads`.
-
-```
-DELETE localhost:8080/iidy/v1/lists/downloads/a.txt
-```
 
 The API for dealing with items in batches looks like this:
 
@@ -298,6 +258,41 @@ e.txt
 '
 ```
 
+The API for dealing with single items looks like this:
+
+Get the number of attempts for `a.txt` from the list named `downloads`.
+
+```
+GET /iidy/v1/lists/downloads/a.txt
+```
+
+Add `a.txt` to the list named `downloads`.
+
+```
+POST /iidy/v1/lists/downloads/a.txt
+```
+
+Increment the number of attempts to process `a.txt` from the list named `downloads`.
+
+```
+POST /iidy/v1/lists/downloads/a.txt?action=increment
+```
+
+Delete `a.txt` from the list named `downloads`.
+
+```
+DELETE localhost:8080/iidy/v1/lists/downloads/a.txt
+```
+
+The API also speaks JSON, because JSON is an expected format for
+REST services these days.
+
+A plaintext API, as shown in these examples, is also used. This plaintext
+API has the advantage of being able to work with the traditional suite
+of command-line tools like `sed` and `awk`. But, of course, it has
+the disadvantage of not being JSON, and a lot of services have come to
+expect JSON as a default.
+
 ### API design considerations
 
 REST is not really a standard, so there's a lot of lattitude in how to
@@ -316,11 +311,13 @@ _Building Microservices in Go_, by Nic Jackson, who provided these guidelines:
  - DELETE deletes a resource
  - HEAD is like GET that only returns headers and no body; it is used to see if a resource exists or not without the overhead of returning that resource's body
 
-and that influenced the API that I have now.
+and that influenced the API that I have now, where I stick to the standard
+HTTP verbs and stick to extra elemens in the URL to use IIDY's different
+capabilities.
 
 If this was written for a particular company rather than as a pet/learning
-project, it could follow the house style of that company, including any
-conventions it had accumulated along the way.
+project, it could follow decisions/patterns that engeneering group had made
+around how to design REST-like APIs.
 
 ### Error handling considerations
 
