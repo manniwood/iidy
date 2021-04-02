@@ -1,11 +1,9 @@
 package pgstore
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
-	"strconv"
 
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
@@ -161,40 +159,15 @@ func (p *PgStore) InsertBatch(ctx context.Context, list string, items []string) 
 	if items == nil || len(items) == 0 {
 		return 0, nil
 	}
-	// The query we need to build looks like this:
-	// insert into lists
-	// (list, item)
-	// values
-	// ($1, $2),
-	// ($3, $4),
-	// ...
-	// ($11, $12) <-- no trailing comma
-	var buffer bytes.Buffer
-	buffer.WriteString("insert into lists (list, item) values \n")
-	argNum := 0
-	args := make([]interface{}, 0)
-	lastIndex := len(items) - 1
-	for i, item := range items {
-		buffer.WriteString("($")
-		argNum++
-		buffer.WriteString(strconv.Itoa(argNum))
-		buffer.WriteString(", ")
-		buffer.WriteString("$")
-		args = append(args, list)
-		argNum++
-		buffer.WriteString(strconv.Itoa(argNum))
-		buffer.WriteString(")")
-		if i < lastIndex {
-			buffer.WriteString(",\n")
-		}
-		args = append(args, item)
+	var inputRows [][]interface{}
+	for _, item := range items {
+		inputRows = append(inputRows, []interface{}{list, item})
 	}
-	sql := buffer.String()
-	commandTag, err := p.pool.Exec(ctx, sql, args...)
+	copyCount, err := p.pool.CopyFrom(ctx, pgx.Identifier{"lists"}, []string{"list", "item"}, pgx.CopyFromRows(inputRows))
 	if err != nil {
 		return 0, fmt.Errorf("%v", err)
 	}
-	return commandTag.RowsAffected(), nil
+	return copyCount, nil
 }
 
 // GetBatch gets a slice of ListEntries from the specified list
