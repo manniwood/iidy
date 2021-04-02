@@ -266,14 +266,17 @@ func (p *PgStore) DeleteBatch(ctx context.Context, list string, items []string) 
 	if items == nil || len(items) == 0 {
 		return 0, nil
 	}
-	// The query we need to build looks like this:
-	// delete from lists
-	//       where list = $1
-	//         and item in (select unnest(array[$2]))
+	// pgx is smart enough to convert `items []string` into postgresql's text[],
+	// which is very nice, because then we can use `items []string` as a single
+	// parameter in the SQL query (`$2`) instead of needing a bunch of parameters
+	// (`$2, $3, $4, ...`).
+	// We could have done `and item = any($2)` but see
+	// https://www.manniwood.com/2016_02_01/arrays_and_the_postgresql_query_planner.html
+	// for why unnesting the array into a table makes the query planner happier.
 	sql := `
 		delete from lists
 		      where list = $1
-						and item = any($2) `
+						and item in (select unnest($2::text[]))`
 	commandTag, err := p.pool.Exec(ctx, sql, list, items)
 	if err != nil {
 		return 0, fmt.Errorf("%v", err)
