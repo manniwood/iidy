@@ -291,33 +291,19 @@ func (p *PgStore) IncrementBatch(ctx context.Context, list string, items []strin
 	if items == nil || len(items) == 0 {
 		return 0, nil
 	}
-	// The query we need to build looks like this:
-	// update lists
-	//    set attempts = attempts + 1
-	//       where list = $1
-	//         and item in (values ($2), ($3), ... ($12))"
-	var buffer bytes.Buffer
-	buffer.WriteString(`
+	// pgx is smart enough to convert `items []string` into postgresql's text[],
+	// which is very nice, because then we can use `items []string` as a single
+	// parameter in the SQL query (`$2`) instead of needing a bunch of parameters
+	// (`$2, $3, $4, ...`).
+	// We could have done `and item = any($2)` but see
+	// https://www.manniwood.com/2016_02_01/arrays_and_the_postgresql_query_planner.html
+	// for why unnesting the array into a table makes the query planner happier.
+	sql := `
 		update lists
 		   set attempts = attempts + 1
 	     where list = $1
-	       and item in (values `)
-	argNum := 1
-	args := make([]interface{}, 0)
-	args = append(args, list)
-	lastIndex := len(items) - 1
-	for i, item := range items {
-		buffer.WriteString("($")
-		argNum++
-		buffer.WriteString(strconv.Itoa(argNum))
-		if i < lastIndex {
-			buffer.WriteString("), ")
-		}
-		args = append(args, item)
-	}
-	buffer.WriteString("))")
-	sql := buffer.String()
-	commandTag, err := p.pool.Exec(ctx, sql, args...)
+				and item in (select unnest($2::text[]))`
+	commandTag, err := p.pool.Exec(ctx, sql, list, items)
 	if err != nil {
 		return 0, fmt.Errorf("%v", err)
 	}
