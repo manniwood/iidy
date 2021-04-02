@@ -21,6 +21,45 @@ import (
 // config and application_name config.
 const DefaultConnectionURL string = "postgresql://iidy:password@localhost:5432/iidy?pool_max_conns=5&application_name=iidy"
 
+// itemCopier implements pgx.CopyFromSource. It can be used to copy a
+// slice of Items into the named List.
+type itemCopier struct {
+	List  string
+	Items []string
+	Len   int
+	I     int
+}
+
+// newItemCopier constructs a new itemCopier
+func newItemCopier(list string, items []string) *itemCopier {
+	return &itemCopier{
+		List:  list,
+		Items: items,
+		Len:   len(items),
+		I:     0,
+	}
+}
+
+// Next tells pgx if there is another row of input left to
+// copy into the destination table.
+func (cp *itemCopier) Next() bool {
+	return cp.I < cp.Len
+}
+
+// Values is called by a pgx copy command when it is ready
+// for the next row of input.
+func (cp *itemCopier) Values() ([]interface{}, error) {
+	row := []interface{}{cp.List, cp.Items[cp.I]}
+	cp.I++
+	return row, nil
+}
+
+// Err can be called if there were any errors encountered
+// while copying.
+func (cp *itemCopier) Err() error {
+	return nil
+}
+
 // ListEntry is a list item and the number of times an attempt has been
 // made to complete it.
 type ListEntry struct {
@@ -159,11 +198,11 @@ func (p *PgStore) InsertBatch(ctx context.Context, list string, items []string) 
 	if items == nil || len(items) == 0 {
 		return 0, nil
 	}
-	var inputRows [][]interface{}
-	for _, item := range items {
-		inputRows = append(inputRows, []interface{}{list, item})
-	}
-	copyCount, err := p.pool.CopyFrom(ctx, pgx.Identifier{"lists"}, []string{"list", "item"}, pgx.CopyFromRows(inputRows))
+	copyCount, err := p.pool.CopyFrom(
+		ctx,
+		pgx.Identifier{"lists"},
+		[]string{"list", "item"},
+		newItemCopier(list, items))
 	if err != nil {
 		return 0, fmt.Errorf("%v", err)
 	}
