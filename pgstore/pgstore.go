@@ -220,34 +220,30 @@ func (p *PgStore) GetBatch(ctx context.Context, list string, startID string, cou
 	if count == 0 {
 		return []ListEntry{}, nil
 	}
-	var sql string
-	args := make([]interface{}, 0)
+	var rows pgx.Rows
+	var err error
 	if startID == "" {
-		sql = `
-		  select item,
-				 attempts
-			from lists
-		   where list = $1
-		order by list,
-				 item
-		   limit $2`
-		args = append(args, list)
-		args = append(args, count)
+		sql := `
+      select item,
+             attempts
+        from lists
+       where list = $1
+    order by list,
+             item
+       limit $2`
+		rows, err = p.pool.Query(ctx, sql, list, count)
 	} else {
-		sql = `
-		  select item,
-				 attempts
-		    from lists
-		   where list = $1
-			 and item > $2
-		order by list,
-				 item
-		   limit $3`
-		args = append(args, list)
-		args = append(args, startID)
-		args = append(args, count)
+		sql := `
+      select item,
+             attempts
+        from lists
+       where list = $1
+         and item > $3
+    order by list,
+             item
+       limit $2`
+		rows, err = p.pool.Query(ctx, sql, list, count, startID)
 	}
-	rows, err := p.pool.Query(ctx, sql, args...)
 	if err != nil {
 		return nil, fmt.Errorf("%v", err)
 	}
