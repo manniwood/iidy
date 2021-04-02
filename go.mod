@@ -1,8 +1,8 @@
 module github.com/manniwood/iidy
 
-go 1.13
+go 1.16
 
 require (
-	github.com/jackc/pgx/v4 v4.1.2
-	golang.org/x/crypto v0.0.0-20191227163750-53104e6ec876 // indirect
+	github.com/jackc/pgtype v1.7.0
+	github.com/jackc/pgx/v4 v4.6.1-0.20200606145419-4e5062306904
 )

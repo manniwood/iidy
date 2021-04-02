@@ -269,28 +269,12 @@ func (p *PgStore) DeleteBatch(ctx context.Context, list string, items []string) 
 	// The query we need to build looks like this:
 	// delete from lists
 	//       where list = $1
-	//         and item in (values ($2), ($3), ... ($12))"
-	var buffer bytes.Buffer
-	buffer.WriteString(`
+	//         and item in (select unnest(array[$2]))
+	sql := `
 		delete from lists
 		      where list = $1
-		        and item in (values `)
-	argNum := 1
-	args := make([]interface{}, 0)
-	args = append(args, list)
-	lastIndex := len(items) - 1
-	for i, item := range items {
-		buffer.WriteString("($")
-		argNum++
-		buffer.WriteString(strconv.Itoa(argNum))
-		if i < lastIndex {
-			buffer.WriteString("), ")
-		}
-		args = append(args, item)
-	}
-	buffer.WriteString("))")
-	sql := buffer.String()
-	commandTag, err := p.pool.Exec(ctx, sql, args...)
+						and item = any($2) `
+	commandTag, err := p.pool.Exec(ctx, sql, list, items)
 	if err != nil {
 		return 0, fmt.Errorf("%v", err)
 	}
