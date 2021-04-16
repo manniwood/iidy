@@ -4,6 +4,14 @@
 
 # IIDY - Is It Done Yet?
 
+## Status: For Play Purposes Only
+
+This code is not intended for production use. It is a fun way to explore
+some ideas with Go and PostgreSQL. It is very permissively licenced, so
+feel free to beg/borrow/steal anything that you like from here.
+
+## Summary
+
 IIDY is a little project I set up to play with Go. It's meant to explore ideas
 more than it is meant to be a production-ready product. One restriction I set
 for myself was to see how much I could accomplish using just the Go standard
