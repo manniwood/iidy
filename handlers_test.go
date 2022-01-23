@@ -1,6 +1,7 @@
 package iidy
 
 import (
+	"bytes"
 	"context"
 	"net/http"
 	"net/http/httptest"
@@ -52,231 +53,146 @@ func (sts StoreTestingStub) IncrementBatch(ctx context.Context, list string, ite
 	return sts.incrementBatch(ctx, list, items)
 }
 
-// TODO: any json response bodies should probably be parsed into
-// structs and deep equalled.
-
-func TestPostHandler(t *testing.T) {
-	req, err := http.NewRequest(http.MethodPost, "/iidy/v1/lists/downloads/kernel.tar.gz", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	rr := httptest.NewRecorder()
-	mockStore := StoreTestingStub{
-		insertOne: func(ctx context.Context, list string, item string) (int64, error) {
-			return 1, nil
+func TestHandler(t *testing.T) {
+	tests := map[string]struct {
+		httpMethod string
+		endpoint   string
+		mockStore  StoreTestingStub
+		wantStatus int
+		wantBody   string
+	}{
+		"InsertOne": {
+			httpMethod: http.MethodPost,
+			endpoint:   "/iidy/v1/lists/downloads/kernel.tar.gz",
+			mockStore: StoreTestingStub{
+				insertOne: func(ctx context.Context, list string, item string) (int64, error) {
+					return 1, nil
+				},
+			},
+			wantStatus: http.StatusCreated,
+			wantBody:   "ADDED 1\n",
+		},
+		"UnknownMethod": {
+			httpMethod: "BLARG",
+			endpoint:   "/iidy/v1/lists/downloads/kernel.tar.gz",
+			mockStore:  StoreTestingStub{},
+			wantStatus: http.StatusBadRequest,
+			wantBody:   "Unknown method.\n",
+		},
+		"GetOne": {
+			httpMethod: http.MethodGet,
+			endpoint:   "/iidy/v1/lists/downloads/kernel.tar.gz",
+			mockStore: StoreTestingStub{
+				getOne: func(ctx context.Context, list string, item string) (int, bool, error) {
+					return 0, true, nil
+				},
+			},
+			wantStatus: http.StatusOK,
+			wantBody:   "0\n",
+		},
+		"GetOne404Item": {
+			httpMethod: http.MethodGet,
+			endpoint:   "/iidy/v1/lists/downloads/i_do_not_exist.tar.gz",
+			mockStore: StoreTestingStub{
+				getOne: func(ctx context.Context, list string, item string) (int, bool, error) {
+					return 0, false, nil
+				},
+			},
+			wantStatus: http.StatusNotFound,
+			wantBody:   "Not found.\n",
+		},
+		"GetOne404List": {
+			httpMethod: http.MethodGet,
+			endpoint:   "/iidy/v1/lists/i_to_not_exist/kernel.tar.gz",
+			mockStore: StoreTestingStub{
+				getOne: func(ctx context.Context, list string, item string) (int, bool, error) {
+					return 0, false, nil
+				},
+			},
+			wantStatus: http.StatusNotFound,
+			wantBody:   "Not found.\n",
+		},
+		"IncrementOne": {
+			httpMethod: http.MethodPost,
+			endpoint:   "/iidy/v1/lists/downloads/kernel.tar.gz?action=increment",
+			mockStore: StoreTestingStub{
+				incrementOne: func(ctx context.Context, list string, item string) (int64, error) {
+					return 1, nil
+				},
+			},
+			wantStatus: http.StatusOK,
+			wantBody:   "INCREMENTED 1\n",
+		},
+		"IncrementMissing": {
+			httpMethod: http.MethodPost,
+			endpoint:   "/iidy/v1/lists/i_do_not_exist/kernel.tar.gz?action=increment",
+			mockStore: StoreTestingStub{
+				incrementOne: func(ctx context.Context, list string, item string) (int64, error) {
+					return 0, nil
+				},
+			},
+			wantStatus: http.StatusOK,
+			wantBody:   "INCREMENTED 0\n",
+		},
+		"DeleteOne": {
+			httpMethod: http.MethodDelete,
+			endpoint:   "/iidy/v1/lists/downloads/kernel.tar.gz",
+			mockStore: StoreTestingStub{
+				deleteOne: func(ctx context.Context, list string, item string) (int64, error) {
+					return 1, nil
+				},
+			},
+			wantStatus: http.StatusOK,
+			wantBody:   "DELETED 1\n",
+		},
+		"DeleteOne404": {
+			httpMethod: http.MethodDelete,
+			endpoint:   "/iidy/v1/lists/downloads/kernel.tar.gz",
+			mockStore: StoreTestingStub{
+				deleteOne: func(ctx context.Context, list string, item string) (int64, error) {
+					return 0, nil
+				},
+			},
+			wantStatus: http.StatusOK,
+			wantBody:   "DELETED 0\n",
 		},
 	}
-	h := &Handler{Store: mockStore}
-	handler := http.Handler(h)
-	handler.ServeHTTP(rr, req)
-	if status := rr.Code; status != http.StatusCreated {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusCreated)
-	}
-	expected := "ADDED 1\n"
-	if rr.Body.String() != expected {
-		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
-	}
 
-	/* TODO: do in another test
-	// Did we really add the item?
-	_, ok, err := h.Store.GetOne(context.Background(), "downloads", "kernel.tar.gz")
-	if err != nil {
-		t.Errorf("Error getting item: %v", err)
+	for ttName, tt := range tests {
+		t.Run(ttName, func(t *testing.T) {
+			req, err := http.NewRequest(tt.httpMethod, tt.endpoint, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			rr := httptest.NewRecorder()
+			h := &Handler{Store: tt.mockStore}
+			handler := http.Handler(h)
+			handler.ServeHTTP(rr, req)
+			if gotStatus := rr.Code; gotStatus != tt.wantStatus {
+				t.Errorf("handler returned wrong status code: got %v want %v", gotStatus, tt.wantStatus)
+			}
+			if gotBody := rr.Body.String(); gotBody != tt.wantBody {
+				t.Errorf("handler returned unexpected body: got %v want %v", gotBody, tt.wantBody)
+			}
+		})
 	}
-	if !ok {
-		t.Error("Did not properly get item from list.")
-	}
-	*/
-}
-
-/*
-func TestNonExistentMethod(t *testing.T) {
-	req, err := http.NewRequest("BLARG", "/iidy/v1/lists/downloads/kernel.tar.gz", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	rr := httptest.NewRecorder()
-	h := &Handler{Store: getEmptyStore(t)}
-	handler := http.Handler(h)
-	handler.ServeHTTP(rr, req)
-	if status := rr.Code; status != http.StatusBadRequest {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
-	}
-	expected := "Unknown method.\n"
-	if rr.Body.String() != expected {
-		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
-	}
-}
-
-func TestGetHandler(t *testing.T) {
-	h := &Handler{Store: getEmptyStore(t)}
-	addSingleStartingItem(t, h.Store)
-
-	// Can we get an existing value?
-	req, err := http.NewRequest("GET", "/iidy/v1/lists/downloads/kernel.tar.gz", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	rr := httptest.NewRecorder()
-	handler := http.Handler(h)
-	handler.ServeHTTP(rr, req)
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
-	}
-	expected := "0\n"
-	if rr.Body.String() != expected {
-		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
-	}
-}
-
-func TestUnhappyHandlerGetScenarios(t *testing.T) {
-	h := &Handler{Store: getEmptyStore(t)}
-	addSingleStartingItem(t, h.Store)
-
-	// What about getting an item that doesn't exist?
-	req, err := http.NewRequest("GET", "/iidy/v1/lists/downloads/i_do_not_exist.tar.gz", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	rr := httptest.NewRecorder()
-	handler := http.Handler(h)
-	handler.ServeHTTP(rr, req)
-	if status := rr.Code; status != http.StatusNotFound {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
-	}
-	expected := "Not found.\n"
-	if rr.Body.String() != expected {
-		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
-	}
-
-	// What about getting from a list that doesn't exist?
-	req, err = http.NewRequest("GET", "/iidy/v1/lists/i_do_not_exist/kernel.tar.gz", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	rr = httptest.NewRecorder()
-	handler.ServeHTTP(rr, req)
-	if status := rr.Code; status != http.StatusNotFound {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
-	}
-	if rr.Body.String() != expected {
-		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
-	}
-}
-
-func TestIncHandler(t *testing.T) {
-	h := &Handler{Store: getEmptyStore(t)}
-	addSingleStartingItem(t, h.Store)
-
-	// Can we increment the number of attempts for a list item?
-	req, err := http.NewRequest("POST", "/iidy/v1/lists/downloads/kernel.tar.gz?action=increment", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	rr := httptest.NewRecorder()
-	handler := http.Handler(h)
-	handler.ServeHTTP(rr, req)
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
-	}
-	expected := "INCREMENTED 1\n"
-	if rr.Body.String() != expected {
-		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
-	}
-
-	// Is the incremented attempt fetchable with GET?
-	req, err = http.NewRequest("GET", "/iidy/v1/lists/downloads/kernel.tar.gz", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	rr = httptest.NewRecorder()
-	handler.ServeHTTP(rr, req)
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
-	}
-	expected = "1\n"
-	if rr.Body.String() != expected {
-		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
-	}
-
-	// How about incrementing something that's not there?
-	req, err = http.NewRequest("POST", "/iidy/v1/lists/i_do_not_exist/kernel.tar.gz?action=increment", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	rr = httptest.NewRecorder()
-	handler.ServeHTTP(rr, req)
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
-	}
-	expected = "INCREMENTED 0\n"
-	if rr.Body.String() != expected {
-		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
-	}
-
-}
-
-func TestDelHandler(t *testing.T) {
-	h := &Handler{Store: getEmptyStore(t)}
-	addSingleStartingItem(t, h.Store)
-
-	// Can we delete our starting value?
-	req, err := http.NewRequest("DELETE", "/iidy/v1/lists/downloads/kernel.tar.gz", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	rr := httptest.NewRecorder()
-	handler := http.Handler(h)
-	handler.ServeHTTP(rr, req)
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
-	}
-	expected := "DELETED 1\n"
-	if rr.Body.String() != expected {
-		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
-	}
-
-	// Is the deleted value really no longer fetchable?
-	req, err = http.NewRequest("GET", "/iidy/v1/lists/downloads/kernel.tar.gz", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	rr = httptest.NewRecorder()
-	handler.ServeHTTP(rr, req)
-	if status := rr.Code; status != http.StatusNotFound {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
-	}
-	expected = "Not found.\n"
-	if rr.Body.String() != expected {
-		t.Errorf("handler returned unexpected body: got '%v' want '%v'", rr.Body.String(), expected)
-	}
-
-	// How about deleting something that's not there?
-	req, err = http.NewRequest("DELETE", "/iidy/v1/lists/downloads/kernel.tar.gz", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	rr = httptest.NewRecorder()
-	handler.ServeHTTP(rr, req)
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
-	}
-	expected = "DELETED 0\n"
-	if rr.Body.String() != expected {
-		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
-	}
-
 }
 
 func TestBatchPostHandler(t *testing.T) {
 	var tests = []struct {
 		mime           string
+		mockStore      StoreTestingStub
 		body           []byte
 		expectAfterAdd string
 		expected       []pgstore.ListEntry
 	}{
 		{
 			mime: "text/plain",
+			mockStore: StoreTestingStub{
+				insertBatch: func(ctx context.Context, list string, items []string) (int64, error) {
+					return 3, nil
+				},
+			},
 			body: []byte(`kernel.tar.gz
 vim.tar.gz
 robots.txt`),
@@ -290,6 +206,11 @@ robots.txt`),
 		},
 		{
 			mime: "application/json",
+			mockStore: StoreTestingStub{
+				insertBatch: func(ctx context.Context, list string, items []string) (int64, error) {
+					return 3, nil
+				},
+			},
 			body: []byte(`{ "items": ["kernel.tar.gz", "vim.tar.gz", "robots.txt"] }`),
 			expectAfterAdd: `{"added":3}
 `,
@@ -301,7 +222,12 @@ robots.txt`),
 			},
 		},
 		{
-			mime:           "text/plain",
+			mime: "text/plain",
+			mockStore: StoreTestingStub{
+				insertBatch: func(ctx context.Context, list string, items []string) (int64, error) {
+					return 0, nil
+				},
+			},
 			body:           nil,
 			expectAfterAdd: "ADDED 0\n",
 			// remember, these come back in alphabetical order
@@ -309,6 +235,11 @@ robots.txt`),
 		},
 		{
 			mime: "application/json",
+			mockStore: StoreTestingStub{
+				insertBatch: func(ctx context.Context, list string, items []string) (int64, error) {
+					return 0, nil
+				},
+			},
 			body: nil,
 			expectAfterAdd: `{"added":0}
 `,
@@ -318,9 +249,7 @@ robots.txt`),
 	}
 
 	for _, test := range tests {
-		h := &Handler{Store: getEmptyStore(t)}
-		// First, clear the store.
-		h.Store.Nuke(context.Background())
+		h := &Handler{Store: test.mockStore}
 
 		req, err := http.NewRequest("POST", "/iidy/v1/batch/lists/downloads", bytes.NewBuffer(test.body))
 		if err != nil {
@@ -336,15 +265,6 @@ robots.txt`),
 		if rr.Body.String() != test.expectAfterAdd {
 			t.Errorf(`Unexpected body: got "%v" want "%v"`, rr.Body.String(), test.expectAfterAdd)
 		}
-
-		// What if we batch get what we just batch put?
-		listEntries, err := h.Store.GetBatch(context.Background(), "downloads", "", 3)
-		if err != nil {
-			t.Errorf("Error fetching items: %v", err)
-		}
-		if !reflect.DeepEqual(test.expected, listEntries) {
-			t.Errorf("Expected %v; got %v", test.expected, listEntries)
-		}
 	}
 }
 
@@ -355,6 +275,7 @@ func TestBatchGetHandler(t *testing.T) {
 		want      string
 		wantJSON  string
 		lastItem  string
+		mockStore StoreTestingStub
 	}{
 		{
 			afterItem: "",
@@ -362,6 +283,14 @@ func TestBatchGetHandler(t *testing.T) {
 			wantJSON: `{"listentries":[{"item":"a","attempts":0},{"item":"b","attempts":0}]}
 `,
 			lastItem: "b",
+			mockStore: StoreTestingStub{
+				getBatch: func(ctx context.Context, list string, startID string, count int) ([]pgstore.ListEntry, error) {
+					return []pgstore.ListEntry{
+						pgstore.ListEntry{Item: "a", Attempts: 0},
+						pgstore.ListEntry{Item: "b", Attempts: 0},
+					}, nil
+				},
+			},
 		},
 		{
 			afterItem: "b",
@@ -369,25 +298,16 @@ func TestBatchGetHandler(t *testing.T) {
 			wantJSON: `{"listentries":[{"item":"c","attempts":0},{"item":"d","attempts":0}]}
 `,
 			lastItem: "d",
-		},
-		{
-			afterItem: "d",
-			want:      "e 0\nf 0\n",
-			wantJSON: `{"listentries":[{"item":"e","attempts":0},{"item":"f","attempts":0}]}
-`,
-			lastItem: "f",
-		},
-		{
-			afterItem: "f",
-			want:      "g 0\n",
-			wantJSON: `{"listentries":[{"item":"g","attempts":0}]}
-`,
-			lastItem: "g",
+			mockStore: StoreTestingStub{
+				getBatch: func(ctx context.Context, list string, startID string, count int) ([]pgstore.ListEntry, error) {
+					return []pgstore.ListEntry{
+						pgstore.ListEntry{Item: "c", Attempts: 0},
+						pgstore.ListEntry{Item: "d", Attempts: 0},
+					}, nil
+				},
+			},
 		},
 	}
-
-	s := getEmptyStore(t)
-	batchAddTestItems(t, s)
 
 	for _, mime := range []string{"text/plain", "application/json"} {
 		for _, test := range tests {
@@ -409,7 +329,7 @@ func TestBatchGetHandler(t *testing.T) {
 			}
 			req.Header.Set("Content-Type", mime)
 			rr := httptest.NewRecorder()
-			h := &Handler{Store: s}
+			h := &Handler{Store: test.mockStore}
 			handler := http.Handler(h)
 			handler.ServeHTTP(rr, req)
 			if status := rr.Code; status != http.StatusOK {
@@ -427,14 +347,18 @@ func TestBatchGetHandler(t *testing.T) {
 }
 
 func TestBatchGetHandlerError(t *testing.T) {
+	mockStore := StoreTestingStub{
+		getBatch: func(ctx context.Context, list string, startID string, count int) ([]pgstore.ListEntry, error) {
+			return []pgstore.ListEntry{}, nil
+		},
+	}
 	// What if we batch get from a list that doesn't exist?
 	req, err := http.NewRequest("GET", "/iidy/v1/batch/lists/i_do_not_exist?count=2", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	rr := httptest.NewRecorder()
-	s := getEmptyStore(t)
-	h := &Handler{Store: s}
+	h := &Handler{Store: mockStore}
 	handler := http.Handler(h)
 	handler.ServeHTTP(rr, req)
 	if status := rr.Code; status != http.StatusOK {
@@ -444,14 +368,20 @@ func TestBatchGetHandlerError(t *testing.T) {
 
 func TestBatchIncHandler(t *testing.T) {
 	var tests = []struct {
-		name     string
-		mime     string
-		body     []byte
-		expected string
+		name      string
+		mime      string
+		mockStore StoreTestingStub
+		body      []byte
+		expected  string
 	}{
 		{
 			name: "text",
 			mime: "text/plain",
+			mockStore: StoreTestingStub{
+				incrementBatch: func(ctx context.Context, list string, items []string) (int64, error) {
+					return 5, nil
+				},
+			},
 			body: []byte(`a
 b
 c
@@ -462,14 +392,17 @@ e`),
 		{
 			name: "JSON",
 			mime: "application/json",
+			mockStore: StoreTestingStub{
+				incrementBatch: func(ctx context.Context, list string, items []string) (int64, error) {
+					return 5, nil
+				},
+			},
 			body: []byte(`{ "items": ["a", "b", "c", "d", "e"] }`),
 			expected: `{"incremented":5}
 `,
 		},
 	}
 	for _, test := range tests {
-		s := getEmptyStore(t)
-		batchAddTestItems(t, s)
 
 		// Can we batch increment some of the items' attempts?
 		req, err := http.NewRequest("POST", "/iidy/v1/batch/lists/downloads?action=increment", bytes.NewBuffer(test.body))
@@ -478,7 +411,7 @@ e`),
 		}
 		req.Header.Set("Content-Type", test.mime)
 		rr := httptest.NewRecorder()
-		h := &Handler{Store: s}
+		h := &Handler{Store: test.mockStore}
 		handler := http.Handler(h)
 		handler.ServeHTTP(rr, req)
 		if status := rr.Code; status != http.StatusOK {
@@ -487,51 +420,34 @@ e`),
 		if rr.Body.String() != test.expected {
 			t.Errorf("%s: handler returned unexpected body: got %v want %v", test.name, rr.Body.String(), test.expected)
 		}
-
-		// If we look for incremented items, are they incremented?
-		for _, file := range []string{"a", "b", "c", "d", "e"} {
-			attempts, ok, err := s.GetOne(context.Background(), "downloads", file)
-			if err != nil {
-				t.Errorf("%s: Error getting item: %v", test.name, err)
-			}
-			if !ok {
-				t.Errorf("%s: Did not properly get item %v from list.", test.name, file)
-			}
-			if attempts != 1 {
-				t.Errorf("%s: Did not properly increment item %v.", test.name, file)
-			}
-		}
-
-		// What about non-incremented items? Were they left alone?
-		for _, file := range []string{"f", "g"} {
-			attempts, ok, err := s.GetOne(context.Background(), "downloads", file)
-			if err != nil {
-				t.Errorf("%s: Error getting item: %v", test.name, err)
-			}
-			if !ok {
-				t.Errorf("%s: Did not properly get item %v from list.", test.name, file)
-			}
-			if attempts != 0 {
-				t.Errorf("%s: Item %v is incorrectly incremented.", test.name, file)
-			}
-		}
 	}
 }
 
 func TestBatchIncHandlerError(t *testing.T) {
 	var tests = []struct {
-		name     string
-		mime     string
-		expected string
+		name      string
+		mime      string
+		mockStore StoreTestingStub
+		expected  string
 	}{
 		{
-			name:     "text",
-			mime:     "text/plain",
+			name: "text",
+			mime: "text/plain",
+			mockStore: StoreTestingStub{
+				incrementBatch: func(ctx context.Context, list string, items []string) (int64, error) {
+					return 0, nil
+				},
+			},
 			expected: "INCREMENTED 0\n",
 		},
 		{
 			name: "JSON",
 			mime: "application/json",
+			mockStore: StoreTestingStub{
+				incrementBatch: func(ctx context.Context, list string, items []string) (int64, error) {
+					return 0, nil
+				},
+			},
 			expected: `{"incremented":0}
 `,
 		},
@@ -544,8 +460,7 @@ func TestBatchIncHandlerError(t *testing.T) {
 		}
 		req.Header.Set("Content-Type", test.mime)
 		rr := httptest.NewRecorder()
-		s := getEmptyStore(t)
-		h := &Handler{Store: s}
+		h := &Handler{Store: test.mockStore}
 		handler := http.Handler(h)
 		handler.ServeHTTP(rr, req)
 		if status := rr.Code; status != http.StatusOK {
@@ -559,14 +474,20 @@ func TestBatchIncHandlerError(t *testing.T) {
 
 func TestBatchDelHandler(t *testing.T) {
 	var tests = []struct {
-		name     string
-		mime     string
-		body     []byte
-		expected string
+		name      string
+		mime      string
+		mockStore StoreTestingStub
+		body      []byte
+		expected  string
 	}{
 		{
 			name: "text",
 			mime: "text/plain",
+			mockStore: StoreTestingStub{
+				deleteBatch: func(ctx context.Context, list string, items []string) (int64, error) {
+					return 5, nil
+				},
+			},
 			body: []byte(`a
 b
 c
@@ -578,21 +499,23 @@ e`),
 			name: "JSON",
 			mime: "application/json",
 			body: []byte(`{ "items": ["a", "b", "c", "d", "e"] }`),
+			mockStore: StoreTestingStub{
+				deleteBatch: func(ctx context.Context, list string, items []string) (int64, error) {
+					return 5, nil
+				},
+			},
 			expected: `{"deleted":5}
 `,
 		},
 	}
 	for _, test := range tests {
-		s := getEmptyStore(t)
-		batchAddTestItems(t, s)
-
 		req, err := http.NewRequest(http.MethodDelete, "/iidy/v1/batch/lists/downloads", bytes.NewBuffer(test.body))
 		if err != nil {
 			t.Fatal(err)
 		}
 		req.Header.Set("Content-Type", test.mime)
 		rr := httptest.NewRecorder()
-		h := &Handler{Store: s}
+		h := &Handler{Store: test.mockStore}
 		handler := http.Handler(h)
 		handler.ServeHTTP(rr, req)
 		if status := rr.Code; status != http.StatusOK {
@@ -601,58 +524,41 @@ e`),
 		if rr.Body.String() != test.expected {
 			t.Errorf("%s: handler returned unexpected body: got %v want %v", test.name, rr.Body.String(), test.expected)
 		}
-
-		// If we look for the deleted items, are they correctly missing?
-		for _, file := range []string{"a", "b", "c", "d", "e"} {
-			_, ok, err := s.GetOne(context.Background(), "downloads", file)
-			if err != nil {
-				t.Errorf("%s: Error getting item: %v", test.name, err)
-			}
-			if ok {
-				t.Errorf("%s: Found item %v that should have been deleted from list.", test.name, file)
-			}
-		}
-
-		// Were other items left alone?
-		for _, file := range []string{"f", "g"} {
-			attempts, ok, err := s.GetOne(context.Background(), "downloads", file)
-			if err != nil {
-				t.Errorf("%s: Error getting item: %v", test.name, err)
-			}
-			if !ok {
-				t.Errorf("%s: Item %v should not have been deleted from list.", test.name, file)
-			}
-			if attempts != 0 {
-				t.Errorf("%s: Item %v is incorrectly incremented.", test.name, file)
-			}
-		}
 	}
 }
 
 func TestBatchDelHandlerError(t *testing.T) {
 	var tests = []struct {
-		name     string
-		mime     string
-		expected string
+		name      string
+		mime      string
+		mockStore StoreTestingStub
+		expected  string
 	}{
 		{
-			name:     "text",
-			mime:     "text/plain",
+			name: "text",
+			mime: "text/plain",
+			mockStore: StoreTestingStub{
+				deleteBatch: func(ctx context.Context, list string, items []string) (int64, error) {
+					return 0, nil
+				},
+			},
 			expected: "DELETED 0\n",
 		},
 		{
 			name: "JSON",
 			mime: "application/json",
+			mockStore: StoreTestingStub{
+				deleteBatch: func(ctx context.Context, list string, items []string) (int64, error) {
+					return 0, nil
+				},
+			},
 			expected: `{"deleted":0}
 `,
 		},
 	}
 	for _, test := range tests {
-		s := getEmptyStore(t)
-		h := &Handler{Store: s}
+		h := &Handler{Store: test.mockStore}
 		// What if we batch delete nothing?
-		// First, clear the store.
-		h.Store.Nuke(context.Background())
 		req, err := http.NewRequest(http.MethodDelete, "/iidy/v1/batch/lists/downloads", nil)
 		if err != nil {
 			t.Fatal(err)
@@ -669,39 +575,3 @@ func TestBatchDelHandlerError(t *testing.T) {
 		}
 	}
 }
-
-func getEmptyStore(t *testing.T) *pgstore.PgStore {
-	p, err := pgstore.NewPgStore("")
-	if err != nil {
-		t.Errorf("Error instantiating PgStore: %v", err)
-	}
-	p.Nuke(context.Background())
-	return p
-}
-
-// Our tests add this test item over and over,
-// so here it is.
-func addSingleStartingItem(t *testing.T, s *pgstore.PgStore) {
-	count, err := s.InsertOne(context.Background(), "downloads", "kernel.tar.gz")
-	if err != nil {
-		t.Errorf("Error adding item: %v", err)
-	}
-	if count != 1 {
-		t.Error("Did not properly add item to list.")
-	}
-}
-
-// These items are expected to be in the db at the start
-// of the next few batch tests.
-func batchAddTestItems(t *testing.T, s *pgstore.PgStore) {
-	// Batch add a bunch of test items.
-	files := []string{"a", "b", "c", "d", "e", "f", "g"}
-	count, err := s.InsertBatch(context.Background(), "downloads", files)
-	if err != nil {
-		t.Errorf("Error batch inserting: %v", err)
-	}
-	if count != 7 {
-		t.Errorf("Batch added wrong number of items. Expected 5, got %v", count)
-	}
-}
-*/
