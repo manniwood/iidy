@@ -68,6 +68,19 @@ type ListEntry struct {
 	Attempts int    `json:"attempts"`
 }
 
+// Store describes list storage methods, in case we want to
+// have a different implementation than the pg implementation.
+type Store interface {
+	InsertOne(ctx context.Context, list string, item string) (int64, error)
+	GetOne(ctx context.Context, list string, item string) (int, bool, error)
+	DeleteOne(ctx context.Context, list string, item string) (int64, error)
+	IncrementOne(ctx context.Context, list string, item string) (int64, error)
+	InsertBatch(ctx context.Context, list string, items []string) (int64, error)
+	GetBatch(ctx context.Context, list string, startID string, count int) ([]ListEntry, error)
+	DeleteBatch(ctx context.Context, list string, items []string) (int64, error)
+	IncrementBatch(ctx context.Context, list string, items []string) (int64, error)
+}
+
 // PgStore is the backend store where lists and list items are kept.
 type PgStore struct {
 	connectionURL string
