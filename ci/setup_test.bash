@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -eux
+set -o pipefail
 
 sudo apt-get remove -y --purge postgresql libpq-dev libpq5 postgresql-client-common postgresql-common
 sudo rm -rf /var/lib/postgresql
@@ -10,6 +11,18 @@ sudo apt-get -y -o Dpkg::Options::=--force-confdef -o Dpkg::Options::="--force-c
 sudo chmod 777 /etc/postgresql/$PGVERSION/main/pg_hba.conf
 echo "local     all         postgres                          trust"    >  /etc/postgresql/$PGVERSION/main/pg_hba.conf
 echo "local     all         all                               trust"    >> /etc/postgresql/$PGVERSION/main/pg_hba.conf
-echo "host      all         all         127.0.0.1/32          trust"    >> /etc/postgresql/$PGVERSION/main/pg_hba.conf
+echo "host      all         pgx_md5     127.0.0.1/32          md5"      >> /etc/postgresql/$PGVERSION/main/pg_hba.conf
 sudo chmod 777 /etc/postgresql/$PGVERSION/main/postgresql.conf
 sudo /etc/init.d/postgresql restart
+
+if [ "${CRATEVERSION-}" != "" ]
+then
+  docker run \
+    -p "6543:5432" \
+    -d \
+    crate:"$CRATEVERSION" \
+    crate \
+      -Cnetwork.host=0.0.0.0 \
+      -Ctransport.host=localhost \
+      -Clicense.enterprise=false
+fi
