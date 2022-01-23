@@ -71,7 +71,7 @@ type ListEntryMessage struct {
 // Handler handles requests to "/lists/". It contains an instance of PgStore,
 // so that it has a place to store list data.
 type Handler struct {
-	Store *pgstore.PgStore
+	Store pgstore.Store
 }
 
 // contentTypeHeaderToContext puts the Content-Type header into

@@ -19,7 +19,8 @@ import (
 // DefaultConnectionURL is the default connection URL
 // to the PostgreSQL database, including connection pool
 // config and application_name config.
-const DefaultConnectionURL string = "postgresql://iidy:password@localhost:5432/iidy?pool_max_conns=5&application_name=iidy"
+const DefaultConnectionURL string = "postgresql://postgres:postgres@localhost:5432/postgres?pool_max_conns=5&application_name=iidy"
+const TernDefaultMigrationTable string = "public.schema_version"
 
 // itemCopier implements pgx.CopyFromSource. It can be used to copy a
 // slice of Items into the named List.
@@ -65,6 +66,19 @@ func (cp *itemCopier) Err() error {
 type ListEntry struct {
 	Item     string `json:"item"`
 	Attempts int    `json:"attempts"`
+}
+
+// Store describes list storage methods, in case we want to
+// have a different implementation than the pg implementation.
+type Store interface {
+	InsertOne(ctx context.Context, list string, item string) (int64, error)
+	GetOne(ctx context.Context, list string, item string) (int, bool, error)
+	DeleteOne(ctx context.Context, list string, item string) (int64, error)
+	IncrementOne(ctx context.Context, list string, item string) (int64, error)
+	InsertBatch(ctx context.Context, list string, items []string) (int64, error)
+	GetBatch(ctx context.Context, list string, startID string, count int) ([]ListEntry, error)
+	DeleteBatch(ctx context.Context, list string, items []string) (int64, error)
+	IncrementBatch(ctx context.Context, list string, items []string) (int64, error)
 }
 
 // PgStore is the backend store where lists and list items are kept.
@@ -122,7 +136,7 @@ User: %s
 // Nuke destroys every list in the data store. Mostly used for testing.
 // Use with caution.
 func (p *PgStore) Nuke(ctx context.Context) error {
-	_, err := p.pool.Exec(ctx, `truncate table lists`)
+	_, err := p.pool.Exec(ctx, `truncate table iidy.lists`)
 	if err != nil {
 		return fmt.Errorf("%v", err)
 	}
@@ -133,7 +147,7 @@ func (p *PgStore) Nuke(ctx context.Context) error {
 // it will be created.
 func (p *PgStore) InsertOne(ctx context.Context, list string, item string) (int64, error) {
 	commandTag, err := p.pool.Exec(ctx, `
-		insert into lists
+		insert into iidy.lists
 		(list, item)
 		values ($1, $2)`, list, item)
 	if err != nil {
@@ -150,7 +164,7 @@ func (p *PgStore) GetOne(ctx context.Context, list string, item string) (int, bo
 	var attempts int
 	err := p.pool.QueryRow(ctx, `
 		select attempts
-		  from lists
+		  from iidy.lists
 		 where list = $1
 		   and item = $2`, list, item).Scan(&attempts)
 	if err != nil {
@@ -167,7 +181,7 @@ func (p *PgStore) GetOne(ctx context.Context, list string, item string) (int, bo
 // items that were successfully deleted (1 or 0).
 func (p *PgStore) DeleteOne(ctx context.Context, list string, item string) (int64, error) {
 	commandTag, err := p.pool.Exec(ctx, `
-		delete from lists
+		delete from iidy.lists
 		 where list = $1
 		   and item = $2`, list, item)
 	if err != nil {
@@ -181,7 +195,7 @@ func (p *PgStore) DeleteOne(ctx context.Context, list string, item string) (int6
 // (1 or 0).
 func (p *PgStore) IncrementOne(ctx context.Context, list string, item string) (int64, error) {
 	commandTag, err := p.pool.Exec(ctx, `
-		update lists
+		update iidy.lists
 		   set attempts = attempts + 1
 		 where list = $1
 		   and item = $2`, list, item)
@@ -200,7 +214,7 @@ func (p *PgStore) InsertBatch(ctx context.Context, list string, items []string) 
 	}
 	copyCount, err := p.pool.CopyFrom(
 		ctx,
-		pgx.Identifier{"lists"},
+		pgx.Identifier{"iidy", "lists"},
 		[]string{"list", "item"},
 		newItemCopier(list, items))
 	if err != nil {
@@ -226,7 +240,7 @@ func (p *PgStore) GetBatch(ctx context.Context, list string, startID string, cou
 		sql := `
       select item,
              attempts
-        from lists
+        from iidy.lists
        where list = $1
     order by list,
              item
@@ -236,7 +250,7 @@ func (p *PgStore) GetBatch(ctx context.Context, list string, startID string, cou
 		sql := `
       select item,
              attempts
-        from lists
+        from iidy.lists
        where list = $1
          and item > $3
     order by list,
@@ -282,7 +296,7 @@ func (p *PgStore) DeleteBatch(ctx context.Context, list string, items []string) 
 	// https://www.manniwood.com/2016_02_01/arrays_and_the_postgresql_query_planner.html
 	// for why unnesting the array into a table makes the query planner happier.
 	sql := `
-		delete from lists
+		delete from iidy.lists
 		      where list = $1
 						and item in (select unnest($2::text[]))`
 	commandTag, err := p.pool.Exec(ctx, sql, list, items)
@@ -307,7 +321,7 @@ func (p *PgStore) IncrementBatch(ctx context.Context, list string, items []strin
 	// https://www.manniwood.com/2016_02_01/arrays_and_the_postgresql_query_planner.html
 	// for why unnesting the array into a table makes the query planner happier.
 	sql := `
-		update lists
+		update iidy.lists
 		   set attempts = attempts + 1
 	     where list = $1
 				and item in (select unnest($2::text[]))`

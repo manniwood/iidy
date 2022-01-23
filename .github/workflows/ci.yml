@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+
+  test:
+    name: Test
+    runs-on: ubuntu-20.04
+
+    strategy:
+      matrix:
+        go-version: [1.17]
+        pg-version: [12, 13, 14]
+        include:
+          - pg-version: 12
+          - pg-version: 13
+          - pg-version: 14
+
+    steps:
+
+    - name: Set up Go 1.x
+      uses: actions/setup-go@v2
+      with:
+        go-version: ${{ matrix.go-version }}
+
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v2
+
+    - name: Setup database server for testing
+      run: ci/setup_test.bash
+      env:
+        PGVERSION: ${{ matrix.pg-version }}
+
+    - name: Test
+      run: go test -race ./...

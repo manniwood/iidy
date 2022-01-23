@@ -1,5 +1,4 @@
-[![](https://godoc.org/github.com/manniwood/iidy?status.svg)](https://godoc.org/github.com/manniwood/iidy)
-[![Build Status](https://travis-ci.com/manniwood/iidy.svg)](https://travis-ci.com/manniwood/iidy)
+[![Go Reference](https://pkg.go.dev/badge/github.com/manniwood/iidy.svg)](https://pkg.go.dev/github.com/manniwood/iidy)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 # IIDY - Is It Done Yet?
@@ -35,19 +34,17 @@ git clone git@github.com:manniwood/iidy.git
 ```
 
 With that done, you need to have PostgreSQL installed an running at localhost:5432.
-[This](https://www.manniwood.com/2017_02_27/postgresql_96_compile_install_howto.html)
+[This](https://www.manniwood.com/2021_10_29/postgresql_14_compile_install_howto.html)
 is one way to accomplish that.
 
 With PostgreSQL up and running, set up the iidy PostgreSQL user and database:
 
-```
-cd $WHEREVER_YOU_CHECKED_OUT_IIDY/iidy/pg_setup
-psql -X -U postgres -d postgres -f setup.sql
-```
-
 And now, run IIDY:
 
 ```
+cd $WHEREVER_YOU_CHECKED_OUT_IIDY/iidy/migrations
+go install github.com/jackc/tern@latest
+tern migrate
 cd $WHEREVER_YOU_CHECKED_OUT_IIDY/iidy/cmd/iidy
 go build
 ./iidy
