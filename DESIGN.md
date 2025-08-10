@@ -238,7 +238,7 @@ Normally, a worker would work on a batch of things, maintain an internal
 list of failures, and update the failed items all in one call, like so:
 
 ```
-POST /iidy/v1/batch/lists/downloads?action=increment -d '
+POST /iidy/v1/increment/batch/lists/downloads -d '
 b.txt
 m.txt
 z.txt
@@ -275,7 +275,7 @@ POST /iidy/v1/lists/downloads/a.txt
 Increment the number of attempts to process `a.txt` from the list named `downloads`.
 
 ```
-POST /iidy/v1/lists/downloads/a.txt?action=increment
+POST /iidy/v1/increment/lists/downloads/a.txt
 ```
 
 Delete `a.txt` from the list named `downloads`.
