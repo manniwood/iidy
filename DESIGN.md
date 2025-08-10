@@ -299,7 +299,7 @@ REST is not really a standard, so there's a lot of lattitude in how to
 design and implement a REST-like API.
 
 Earlier iterations of IIDY used custom verbs for incrementing and doing
-batch operations. So instead of `POST ...?action=increment`, I used
+batch operations. So instead of `POST .../increment/...`, I used
 `INCREMENT`. And instead of `DELETE .../batch/...`, I used `BULKDELETE`
 
 However, I read
@@ -317,7 +317,8 @@ capabilities.
 
 If this was written for a particular company rather than as a pet/learning
 project, it could follow decisions/patterns that engeneering group had made
-around how to design REST-like APIs.
+around how to design REST-like APIs. After all, REST is not a standard, so
+whatever internal conventions the company already had would prevail.
 
 ### Error handling considerations
 
