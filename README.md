@@ -63,7 +63,7 @@ ADDED 1
 $ curl localhost:8080/iidy/v1/lists/downloads/a.txt
 0
 
-$ curl -X POST localhost:8080/iidy/v1/lists/downloads/a.txt?action=increment
+$ curl -X POST localhost:8080/iidy/v1/increment/lists/downloads/a.txt
 INCREMENTED 1
 
 $ curl localhost:8080/iidy/v1/lists/downloads/a.txt
@@ -101,7 +101,7 @@ g.txt 0
 h.txt 0
 i.txt 0
 
-$ curl localhost:8080/iidy/v1/batch/lists/downloads?action=increment -d '
+$ curl -X POST localhost:8080/iidy/v1/increment/batch/lists/downloads -d '
 b.txt
 c.txt
 d.txt
@@ -147,7 +147,7 @@ $ curl -X POST -H "Content-type: application/json" localhost:8080/iidy/v1/lists/
 $ curl -H "Content-type: application/json" localhost:8080/iidy/v1/lists/downloads/a.txt
 {"item":"a.txt","attempts":0}
 
-$ curl -X POST -H "Content-type: application/json" localhost:8080/iidy/v1/lists/downloads/a.txt?action=increment
+$ curl -X POST -H "Content-type: application/json" localhost:8080/iidy/v1/increment/lists/downloads/a.txt
 {"incremented":1}
 
 $ curl -H "Content-type: application/json" localhost:8080/iidy/v1/lists/downloads/a.txt
@@ -189,7 +189,7 @@ $ curl -H "Content-type: application/json" "localhost:8080/iidy/v1/batch/lists/d
 {"item":"h.txt","attempts":0},
 {"item":"i.txt","attempts":0}]}
 
-$ curl -H "Content-type: application/json" localhost:8080/iidy/v1/batch/lists/downloads?action=increment -d '
+$ curl -H "Content-type: application/json" localhost:8080/iidy/v1/increment/batch/lists/downloads -d '
 {"items":[
 "b.txt",
 "c.txt",

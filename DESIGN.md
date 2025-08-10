@@ -68,7 +68,7 @@ The primary key constraint will build an index that will make lookups
 by list and item go quickly.
 
 The SQL for operations on single items is straightforward:
-See `pgstore.go` for details.
+See `data.go` for details.
 
 ### Batching for Performance
 
@@ -176,14 +176,14 @@ delete from lists
                        ('5.txt'));
 ```
 
-This explains all of the SQL that is used in the `pgstore.go` source
+This explains all of the SQL that is used in the `data.go` source
 file. The SQL statements themselves are built up in a fairly straightforward
 manner. More complex SQL might benefit from a templating system, whereas
 here, introducing a templating system might be too much too early.
 
 ### Testing
 
-The tests for `pgstore.go` assume the existence/availability of a
+The tests for `data.go` assume the existence/availability of a
 PostgreSQL database that has been loaded with the required schema.
 
 So really we are doing integration tests and not unit tests.
@@ -197,9 +197,9 @@ allow actual unit testing.
 
 ## The REST API
 
-Normally, the code in `pgstore.go` would just live inside of a larger applicaiton,
+Normally, the code in `data.go` would just live inside of a larger applicaiton,
 but for learning purposes, I created a REST-like API to sit on top of
-`pgstore.go`.
+`data.go`.
 
 
 The API for dealing with items in batches looks like this:
@@ -322,9 +322,9 @@ around how to design REST-like APIs.
 ### Error handling considerations
 
 I followed the advice at https://blog.golang.org/go1.13-errors when
-planning the error handling between pgstore and the REST interface.
+planning the error handling between data and the REST interface.
 
-The pgx errors we will be dealing with are internal details to pgstore.
+The pgx errors we will be dealing with are internal details to data.
 To avoid exposing pgx errors to the REST part of the application,
 I repackage them as new errors with the same text as the original errors.
 I use the `%v` formatting verb, since `%w` would permit the caller to
