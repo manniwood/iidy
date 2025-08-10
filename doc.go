@@ -13,7 +13,7 @@ Sample interaction:
 	$ curl localhost:8080/iidy/v1/lists/downloads/a.txt
 	0
 
-	$ curl -X POST localhost:8080/iidy/v1/lists/downloads/a.txt?action=increment
+	$ curl -X POST localhost:8080/iidy/v1/increment/lists/downloads/a.txt
 	INCREMENTED 1
 
 	$ curl localhost:8080/iidy/v1/lists/downloads/a.txt
@@ -51,7 +51,7 @@ Sample interaction:
 	h.txt 0
 	i.txt 0
 
-	$ curl localhost:8080/iidy/v1/batch/lists/downloads?action=increment -d '
+	$ curl localhost:8080/iidy/v1/increment/batch/lists/downloads
 	b.txt
 	c.txt
 	d.txt
@@ -82,6 +82,5 @@ Sample interaction:
 	c.txt 1
 	h.txt 0
 	i.txt 0
-
 */
 package iidy
