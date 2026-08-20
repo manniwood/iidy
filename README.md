@@ -20,10 +20,20 @@ IIDY is a simple yet scalable task list (attempt list) with a PostgreSQL
 backend. It also provides a REST API.
 
 The basic problem IIDY wants to solve is to be an attempt list for millions
-or billions of items. An example use case is trying to download a few million
-files, where not every attempt will be initially successful. One would want to
-track how many attempts were made per file, in addition to removing files whose
-downloads were successful.
+or billions of items that is worked on by multiple workers spread across a
+fleet of servers.
+
+An example use case is trying to download a few million files, perhaps as an
+initial backup of a customer's files. Assume the downloads will be attempted by
+dozens of worker processes across a fleet of machines. Assume a co-ordinator
+process gets an initial list of the millions of files that need to be
+downloaded and writes that list to iidy. Then, worker processes will grab
+batches of file names from iidy (perhaps a thousand at a time), and iidy will
+hand out those batches in a non-overlapping way. Worker processes will report
+back to iidy their successes and failures on their personal batches. On
+success, workers can pick up new batches. Iidy will track how many attempts
+were made per file, in addition to removing files whose downloads were
+successful.
 
 ## Setup
 
