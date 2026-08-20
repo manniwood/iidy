@@ -11,7 +11,7 @@ package iidy
 //	export INTEGTEST_DESTROY_DB_I_MEAN_IT=true
 //
 // To run the integration test for the server binary, you need to have 1) a locally-running
-// PostgreSQL cluster, 2) the server running and pointed at port 9090, and 3) the following
+// PostgreSQL cluster, 2) the server running and pointed at port 8080, and 3) the following
 // env vars set:
 //
 //	export INTEGTEST_DESTROY_DB_URL=postgres://postgres:postgres@localhost:5432/postgres
@@ -509,7 +509,7 @@ func testServer(t *testing.T) {
 			t.Errorf("Expected status code %d but got: %v", http.StatusCreated, resp.StatusCode)
 		}
 
-		body, err := readAllHttpResponseBody(resp.Body)
+		body, err := readAllHTTPResponseBody(resp.Body)
 		if err != nil {
 			t.Errorf("Error reading http response body: %v", err)
 		}
@@ -529,7 +529,7 @@ func testServer(t *testing.T) {
 			t.Errorf("Expected status code %d but got: %v", http.StatusOK, resp.StatusCode)
 		}
 
-		body, err := readAllHttpResponseBody(resp.Body)
+		body, err := readAllHTTPResponseBody(resp.Body)
 		if err != nil {
 			t.Errorf("Error reading http response body: %v", err)
 		}
@@ -580,7 +580,7 @@ func testServer(t *testing.T) {
 			t.Errorf("Expected status code %d but got: %v", http.StatusOK, resp.StatusCode)
 		}
 
-		body, err := readAllHttpResponseBody(resp.Body)
+		body, err := readAllHTTPResponseBody(resp.Body)
 		if err != nil {
 			t.Errorf("Error reading http response body: %v", err)
 		}
@@ -619,7 +619,7 @@ func testServer(t *testing.T) {
 			t.Errorf("Expected status code %d but got: %v", http.StatusOK, resp.StatusCode)
 		}
 
-		body, err := readAllHttpResponseBody(resp.Body)
+		body, err := readAllHTTPResponseBody(resp.Body)
 		if err != nil {
 			t.Errorf("Error reading http response body: %v", err)
 		}
@@ -646,7 +646,7 @@ func testServer(t *testing.T) {
 			t.Errorf("Expected status code %d but got: %v", http.StatusOK, resp.StatusCode)
 		}
 
-		body, err := readAllHttpResponseBody(resp.Body)
+		body, err := readAllHTTPResponseBody(resp.Body)
 		if err != nil {
 			t.Errorf("Error reading http response body: %v", err)
 		}
@@ -684,7 +684,7 @@ func testServer(t *testing.T) {
 			t.Errorf("Expected status code %d but got: %v", http.StatusOK, resp.StatusCode)
 		}
 
-		body, err := readAllHttpResponseBody(resp.Body)
+		body, err := readAllHTTPResponseBody(resp.Body)
 		if err != nil {
 			t.Errorf("Error reading http response body: %v", err)
 		}
@@ -704,7 +704,7 @@ func testServer(t *testing.T) {
 			t.Errorf("Expected status code %d but got: %v", http.StatusOK, resp.StatusCode)
 		}
 
-		body, err := readAllHttpResponseBody(resp.Body)
+		body, err := readAllHTTPResponseBody(resp.Body)
 		if err != nil {
 			t.Errorf("Error reading http response body: %v", err)
 		}
@@ -727,7 +727,7 @@ func testServer(t *testing.T) {
 			t.Errorf("Expected status code %d but got: %v", http.StatusOK, resp.StatusCode)
 		}
 
-		body, err := readAllHttpResponseBody(resp.Body)
+		body, err := readAllHTTPResponseBody(resp.Body)
 		if err != nil {
 			t.Errorf("Error reading http response body: %v", err)
 		}
@@ -750,7 +750,7 @@ func testServer(t *testing.T) {
 			t.Errorf("Expected status code %d but got: %v", http.StatusOK, resp.StatusCode)
 		}
 
-		body, err := readAllHttpResponseBody(resp.Body)
+		body, err := readAllHTTPResponseBody(resp.Body)
 		if err != nil {
 			t.Errorf("Error reading http response body: %v", err)
 		}
@@ -777,7 +777,7 @@ func testServer(t *testing.T) {
 			t.Errorf("Expected status code %d but got: %v", http.StatusOK, resp.StatusCode)
 		}
 
-		body, err := readAllHttpResponseBody(resp.Body)
+		body, err := readAllHTTPResponseBody(resp.Body)
 		if err != nil {
 			t.Errorf("Error reading http response body: %v", err)
 		}
@@ -803,7 +803,7 @@ func testServer(t *testing.T) {
 			t.Errorf("Expected status code %d but got: %v", http.StatusCreated, resp.StatusCode)
 		}
 
-		body, err := readAllHttpResponseBody(resp.Body)
+		body, err := readAllHTTPResponseBody(resp.Body)
 		if err != nil {
 			t.Errorf("Error reading http response body: %v", err)
 		}
@@ -826,7 +826,7 @@ func testServer(t *testing.T) {
 			t.Errorf("Expected status code %d but got: %v", http.StatusCreated, resp.StatusCode)
 		}
 
-		body, err := readAllHttpResponseBody(resp.Body)
+		body, err := readAllHTTPResponseBody(resp.Body)
 		if err != nil {
 			t.Errorf("Error reading http response body: %v", err)
 		}
@@ -854,7 +854,7 @@ func testServer(t *testing.T) {
 			t.Errorf("Expected status code %d but got: %v", http.StatusOK, resp.StatusCode)
 		}
 
-		body, err := readAllHttpResponseBody(resp.Body)
+		body, err := readAllHTTPResponseBody(resp.Body)
 		if err != nil {
 			t.Errorf("Error reading http response body: %v", err)
 		}
@@ -880,7 +880,7 @@ func testServer(t *testing.T) {
 			t.Errorf("Expected status code %d but got: %v", http.StatusCreated, resp.StatusCode)
 		}
 
-		body, err := readAllHttpResponseBody(resp.Body)
+		body, err := readAllHTTPResponseBody(resp.Body)
 		if err != nil {
 			t.Errorf("Error reading http response body: %v", err)
 		}
@@ -908,7 +908,7 @@ func testServer(t *testing.T) {
 			t.Errorf("Expected status code %d but got: %v", http.StatusOK, resp2.StatusCode)
 		}
 
-		body2, err := readAllHttpResponseBody(resp2.Body)
+		body2, err := readAllHTTPResponseBody(resp2.Body)
 		if err != nil {
 			t.Errorf("Error reading http response body: %v", err)
 		}
@@ -928,7 +928,7 @@ func testServer(t *testing.T) {
 				t.Errorf("Expected status code %d but got: %v", http.StatusNotFound, resp3.StatusCode)
 			}
 
-			body3, err := readAllHttpResponseBody(resp3.Body)
+			body3, err := readAllHTTPResponseBody(resp3.Body)
 			if err != nil {
 				t.Errorf("Error reading http response body: %v", err)
 			}
@@ -949,7 +949,7 @@ func testServer(t *testing.T) {
 				t.Errorf("Expected status code %d but got: %v", http.StatusOK, resp4.StatusCode)
 			}
 
-			body4, err := readAllHttpResponseBody(resp4.Body)
+			body4, err := readAllHTTPResponseBody(resp4.Body)
 			if err != nil {
 				t.Errorf("Error reading http response body: %v", err)
 			}
@@ -978,7 +978,7 @@ func testServer(t *testing.T) {
 			t.Errorf("Expected status code %d but got: %v", http.StatusOK, resp5.StatusCode)
 		}
 
-		body5, err := readAllHttpResponseBody(resp5.Body)
+		body5, err := readAllHTTPResponseBody(resp5.Body)
 		if err != nil {
 			t.Errorf("Error reading http response body: %v", err)
 		}
@@ -1004,7 +1004,7 @@ func testServer(t *testing.T) {
 			t.Errorf("Expected status code %d but got: %v", http.StatusCreated, resp.StatusCode)
 		}
 
-		body, err := readAllHttpResponseBody(resp.Body)
+		body, err := readAllHTTPResponseBody(resp.Body)
 		if err != nil {
 			t.Errorf("Error reading http response body: %v", err)
 		}
@@ -1034,7 +1034,7 @@ func testServer(t *testing.T) {
 				t.Errorf("Expected status code %d but got: %v", http.StatusOK, resp.StatusCode)
 			}
 
-			body, err := readAllHttpResponseBody(resp.Body)
+			body, err := readAllHTTPResponseBody(resp.Body)
 			if err != nil {
 				t.Errorf("Error reading http response body: %v", err)
 			}
@@ -1054,7 +1054,7 @@ func testServer(t *testing.T) {
 			t.Errorf("Expected status code %d but got: %v", http.StatusOK, resp.StatusCode)
 		}
 
-		body2, err := readAllHttpResponseBody(resp2.Body)
+		body2, err := readAllHTTPResponseBody(resp2.Body)
 		if err != nil {
 			t.Errorf("Error reading http response body: %v", err)
 		}
@@ -1082,7 +1082,7 @@ func testServer(t *testing.T) {
 			t.Errorf("Expected status code %d but got: %v", http.StatusOK, resp5.StatusCode)
 		}
 
-		body5, err := readAllHttpResponseBody(resp5.Body)
+		body5, err := readAllHTTPResponseBody(resp5.Body)
 		if err != nil {
 			t.Errorf("Error reading http response body: %v", err)
 		}
@@ -1108,7 +1108,7 @@ func testServer(t *testing.T) {
 			t.Errorf("Expected status code %d but got: %v", http.StatusCreated, resp.StatusCode)
 		}
 
-		body, err := readAllHttpResponseBody(resp.Body)
+		body, err := readAllHTTPResponseBody(resp.Body)
 		if err != nil {
 			t.Errorf("Error reading http response body: %v", err)
 		}
@@ -1132,7 +1132,7 @@ func testServer(t *testing.T) {
 			t.Errorf("Expected status code %d but got: %v", http.StatusOK, resp2.StatusCode)
 		}
 
-		body2, err := readAllHttpResponseBody(resp2.Body)
+		body2, err := readAllHTTPResponseBody(resp2.Body)
 		if err != nil {
 			t.Errorf("Error reading http response body: %v", err)
 		}
@@ -1152,7 +1152,7 @@ func testServer(t *testing.T) {
 				t.Errorf("Expected status code %d but got: %v", http.StatusOK, resp.StatusCode)
 			}
 
-			body, err := readAllHttpResponseBody(resp.Body)
+			body, err := readAllHTTPResponseBody(resp.Body)
 			if err != nil {
 				t.Errorf("Error reading http response body: %v", err)
 			}
@@ -1173,7 +1173,7 @@ func testServer(t *testing.T) {
 				t.Errorf("Expected status code %d but got: %v", http.StatusOK, resp.StatusCode)
 			}
 
-			body, err := readAllHttpResponseBody(resp.Body)
+			body, err := readAllHTTPResponseBody(resp.Body)
 			if err != nil {
 				t.Errorf("Error reading http response body: %v", err)
 			}
@@ -1196,7 +1196,7 @@ func testServer(t *testing.T) {
 			t.Errorf("Expected status code %d but got: %v", http.StatusOK, resp3.StatusCode)
 		}
 
-		body3, err := readAllHttpResponseBody(resp3.Body)
+		body3, err := readAllHTTPResponseBody(resp3.Body)
 		if err != nil {
 			t.Errorf("Error reading http response body: %v", err)
 		}
@@ -1224,7 +1224,7 @@ func testServer(t *testing.T) {
 			t.Errorf("Expected status code %d but got: %v", http.StatusOK, resp5.StatusCode)
 		}
 
-		body5, err := readAllHttpResponseBody(resp5.Body)
+		body5, err := readAllHTTPResponseBody(resp5.Body)
 		if err != nil {
 			t.Errorf("Error reading http response body: %v", err)
 		}
@@ -1234,7 +1234,7 @@ func testServer(t *testing.T) {
 	})
 }
 
-func readAllHttpResponseBody(body io.ReadCloser) (string, error) {
+func readAllHTTPResponseBody(body io.ReadCloser) (string, error) {
 	bodyBytes, err := io.ReadAll(body)
 	if err != nil {
 		return "", err
@@ -1249,7 +1249,7 @@ func wipeDB(ctx context.Context, t *testing.T, conn *pgx.Conn) {
 	}
 
 	// Drop entire iidy schema.
-	_, err := conn.Exec(ctx, fmt.Sprintf("drop schema if exists iidy cascade"))
+	_, err := conn.Exec(ctx, "drop schema if exists iidy cascade")
 	if err != nil {
 		t.Fatalf("Could not destroy iidy schema : %v", err)
 	}

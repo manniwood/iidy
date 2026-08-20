@@ -25,8 +25,7 @@ const DefaultPgPoolURL string = "postgresql://postgres:postgres@localhost:5432/p
 const DefaultPgMigrationURL string = "postgresql://postgres:postgres@localhost:5432/postgres"
 const TernMigrationTable string = "public.iidy_schema_version"
 
-// At application startup, a pgx pool will get created and assigned
-// to this var.
+// PgxPool holds a pgx pool that will be assigned at application startup.
 var PgxPool *pgxpool.Pool
 
 // itemCopier implements pgx.CopyFromSource. It can be used to copy a
@@ -56,8 +55,8 @@ func (cp *itemCopier) Next() bool {
 
 // Values is called by a pgx copy command when it is ready
 // for the next row of input.
-func (cp *itemCopier) Values() ([]interface{}, error) {
-	row := []interface{}{cp.List, cp.Items[cp.I]}
+func (cp *itemCopier) Values() ([]any, error) {
+	row := []any{cp.List, cp.Items[cp.I]}
 	cp.I++
 	return row, nil
 }
@@ -194,7 +193,8 @@ func IncrementOne(ctx context.Context, e Execer, list string, item string) (int6
 // their completion attempt counts to 0. The first return value is the
 // number of items successfully inserted, generally len(items) or 0.
 func InsertBatch(ctx context.Context, cf CopyFromer, list string, items []string) (int64, error) {
-	if items == nil || len(items) == 0 {
+	// Note: nil items returns len 0, not NPE
+	if len(items) == 0 {
 		return 0, nil
 	}
 	return cf.CopyFrom(
@@ -249,7 +249,8 @@ func GetBatch(ctx context.Context, q Querier, list string, startID string, count
 // The first return value is the number of items successfully deleted,
 // generally len(items) or 0.
 func DeleteBatch(ctx context.Context, e Execer, list string, items []string) (int64, error) {
-	if items == nil || len(items) == 0 {
+	// Note: nil items returns len 0, not NPE
+	if len(items) == 0 {
 		return 0, nil
 	}
 	// pgx is smart enough to convert `items []string` into postgresql's text[],
@@ -278,7 +279,8 @@ func DeleteBatch(ctx context.Context, e Execer, list string, items []string) (in
 // the specified list.  The first return value is the number of items
 // successfully incremented, generally len(items) or 0.
 func IncrementBatch(ctx context.Context, e Execer, list string, items []string) (int64, error) {
-	if items == nil || len(items) == 0 {
+	// Note: nil items returns len 0, not NPE
+	if len(items) == 0 {
 		return 0, nil
 	}
 	// pgx is smart enough to convert `items []string` into postgresql's text[],

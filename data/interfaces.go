@@ -19,7 +19,7 @@ import (
 // any of the above, meaning that function will automatically work with pgx connections,
 // connection pools, transactions, etc.
 type Querier interface {
-	Query(ctx context.Context, sql string, args ...interface{}) (pgx.Rows, error)
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
 }
 
 // Execer is anything that can run Exec() from jackc's pgx library.

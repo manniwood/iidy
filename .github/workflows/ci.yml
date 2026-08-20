@@ -10,16 +10,16 @@ jobs:
 
   test:
     name: Test
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-26.04
 
     strategy:
       matrix:
-        go-version: [1.17]
-        pg-version: [12, 13, 14]
+        go-version: [1.27]
+        pg-version: [16, 17, 18]
         include:
-          - pg-version: 12
-          - pg-version: 13
-          - pg-version: 14
+          - pg-version: 16
+          - pg-version: 17
+          - pg-version: 18
 
     steps:
 
@@ -36,5 +36,17 @@ jobs:
       env:
         PGVERSION: ${{ matrix.pg-version }}
 
+    - name: Build iidy
+      run: go build -o iidy cmd/iidy
+
+    - name: Run iidy
+      run: ./iidy
+      background: true
+
     - name: Test
+      env:
+        INTEGTEST_DESTROY_DB_URL: "postgres://postgres:postgres@localhost:5432/postgres"
+        INTEGTEST_DESTROY_DB_I_MEAN_IT: "true"
+        INTEGTEST_SERVER: "true"
+
       run: go test -race ./...

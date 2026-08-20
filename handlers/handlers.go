@@ -1,3 +1,4 @@
+// Package handlers handles all http requests
 package handlers
 
 import (
@@ -57,7 +58,8 @@ type ListEntryMessage struct {
 // getItemsFromBody gets a slice of list items from the request body,
 // regardless if the request body is in JSON or plain text format.
 func getItemsFromBody(contentType string, bodyBytes []byte) ([]string, error) {
-	if bodyBytes == nil || len(bodyBytes) == 0 {
+	// Note: length of a nil bodyBytes is 0
+	if len(bodyBytes) == 0 {
 		return nil, nil
 	}
 	if contentType == "application/json" {
@@ -70,7 +72,8 @@ func getItemsFromBody(contentType string, bodyBytes []byte) ([]string, error) {
 // getItemsFromJSON gets a slice of list item names from
 // the bytes of a request body that is in JSON format.
 func getItemsFromJSON(bodyBytes []byte) ([]string, error) {
-	if bodyBytes == nil || len(bodyBytes) == 0 {
+	// Note: length of a nil bodyBytes is 0
+	if len(bodyBytes) == 0 {
 		return nil, nil
 	}
 	var msg *ItemListMessage
@@ -84,7 +87,8 @@ func getItemsFromJSON(bodyBytes []byte) ([]string, error) {
 // getItemsFromPlainText gets a slice of list item names from
 // the bytes of a request body that is in plain text format.
 func getItemsFromPlainText(bodyBytes []byte) []string {
-	if bodyBytes == nil || len(bodyBytes) == 0 {
+	// Note: length of a nil bodyBytes is 0
+	if len(bodyBytes) == 0 {
 		return nil
 	}
 	bodyString := string(bodyBytes[:])
@@ -342,6 +346,11 @@ func GetBatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	listEntries, err := data.GetBatch(r.Context(), data.PgxPool, list, afterID, count)
+	if err != nil {
+		errStr := fmt.Sprintf("Could not get batch: %v", err)
+		printError(w, contentType, &ErrorMessage{Error: errStr}, http.StatusInternalServerError)
+		return
+	}
 	if len(listEntries) == 0 {
 		// Nothing found, so we are done!
 		w.WriteHeader(http.StatusOK)
@@ -415,12 +424,11 @@ func printError(w http.ResponseWriter, contentType string, e *ErrorMessage, code
 	} else {
 		http.Error(w, e.Error, code)
 	}
-	return
 }
 
 // printSuccess prints a success message to w, the response writer, in the requested
 // format, JSON or plain text. The response code is also set as specified.
-func printSuccess(w http.ResponseWriter, contentType string, v interface{}, code int) {
+func printSuccess(w http.ResponseWriter, contentType string, v any, code int) {
 	w.WriteHeader(code)
 	if contentType == "application/json" {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -430,24 +438,19 @@ func printSuccess(w http.ResponseWriter, contentType string, v interface{}, code
 		}
 	} else {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		switch v.(type) {
+		switch m := v.(type) {
 		case *AddedMessage:
-			m := v.(*AddedMessage)
 			fmt.Fprintf(w, "ADDED %d\n", m.Added)
 		case *IncrementedMessage:
-			m := v.(*IncrementedMessage)
 			fmt.Fprintf(w, "INCREMENTED %d\n", m.Incremented)
 		case *DeletedMessage:
-			m := v.(*DeletedMessage)
 			fmt.Fprintf(w, "DELETED %d\n", m.Deleted)
 		case *data.ListEntry:
-			m := v.(*data.ListEntry)
 			fmt.Fprintf(w, "%d\n", m.Attempts)
 		default:
 			fmt.Printf("Could not determine type of: %v", v)
 		}
 	}
-	return
 }
 
 // printListEntries prints list entries to the w, the response writer.
@@ -465,5 +468,4 @@ func printListEntries(w http.ResponseWriter, contentType string, listEntries []d
 			fmt.Fprintf(w, "%s %d\n", listItem.Item, listItem.Attempts)
 		}
 	}
-	return
 }

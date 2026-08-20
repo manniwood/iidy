@@ -46,6 +46,9 @@ func main() {
 	migrationConn.Close(ctx)
 
 	data.PgxPool, err = data.CreatePGXPool(ctx, poolURL)
+	if err != nil {
+		log.Fatalf("Could not create connection pool: %v\n", err)
+	}
 	defer data.PgxPool.Close()
 
 	http.HandleFunc("POST /iidy/v1/lists/{list}/{item}", handlers.InsertOne)
