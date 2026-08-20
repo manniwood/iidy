@@ -24,12 +24,12 @@ jobs:
     steps:
 
     - name: Set up Go 1.x
-      uses: actions/setup-go@v2
+      uses: actions/setup-go@v5
       with:
         go-version: ${{ matrix.go-version }}
 
     - name: Check out code into the Go module directory
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
 
     - name: Setup database server for testing
       run: ci/setup_test.bash
@@ -37,7 +37,7 @@ jobs:
         PGVERSION: ${{ matrix.pg-version }}
 
     - name: Build iidy
-      run: go build -o iidy cmd/iidy
+      run: go build -v -o iidy ./cmd/iidy
 
     - name: Run iidy
       run: ./iidy
