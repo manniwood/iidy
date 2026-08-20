@@ -40,6 +40,7 @@ jobs:
       run: go build -v -o iidy ./cmd/iidy
 
     - name: Run iidy
+      id: iidyserver
       run: ./iidy
       background: true
 
@@ -50,3 +51,6 @@ jobs:
         INTEGTEST_SERVER: "true"
 
       run: go test -race ./...
+
+    - name: Stop iidy
+      cancel: iidyserver
